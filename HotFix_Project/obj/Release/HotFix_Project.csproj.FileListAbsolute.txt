@@ -1,5 +1,0 @@
-E:\SVN\u3ddemo_ilr\ILRuntimeDemo\Assets\StreamingAssets\HotFix_Project.dll
-E:\SVN\u3ddemo_ilr\ILRuntimeDemo\Assets\StreamingAssets\HotFix_Project.pdb
-E:\SVN\u3ddemo_ilr\HotFix_Project\obj\Release\HotFix_Project.csprojResolveAssemblyReference.cache
-E:\SVN\u3ddemo_ilr\HotFix_Project\obj\Release\HotFix_Project.dll
-E:\SVN\u3ddemo_ilr\HotFix_Project\obj\Release\HotFix_Project.pdb
