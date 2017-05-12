@@ -27,7 +27,8 @@ namespace HotFix_Project
         // static method
         public static void StaticFunTest()
         {
-            UnityEngine.Debug.Log("!!! InstanceClass.StaticFunTest()");
+//            UnityEngine.Debug.Log("!!! InstanceClass.StaticFunTest()");
+            UnityEngine.Debug.Log(" Lazy !!! InstanceClass.StaticFunTest() Lazy");
         }
 
         public static void StaticFunTest2(int a)

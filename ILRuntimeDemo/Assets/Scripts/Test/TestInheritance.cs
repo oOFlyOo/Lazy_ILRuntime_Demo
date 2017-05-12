@@ -19,7 +19,7 @@ namespace HotFix_Project
 
         public static TestInheritance NewObject()
         {
-            return new HotFix_Project.TestInheritance();
+            return new TestInheritance();
         }
     }
 }

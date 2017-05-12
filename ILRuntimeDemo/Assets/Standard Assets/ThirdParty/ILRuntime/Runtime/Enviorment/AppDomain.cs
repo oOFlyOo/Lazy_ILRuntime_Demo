@@ -1,4 +1,8 @@
-﻿using System;
+﻿
+#define USE_PDB
+#define USE_MDB
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
