@@ -76,7 +76,7 @@ public class CLRRedirectionDemo : MonoBehaviour
         ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
 
         //这里是将栈指针上的值转换成object，如果是基础类型可直接通过ptr->Value和ptr->ValueLow访问到值，具体请看ILRuntime实现原理文档
-        object message = typeof(object).CheckCLRTypes(__domain, StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+        object message = typeof(object).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
         //所有非基础类型都得调用Free来释放托管堆栈
         __intp.Free(ptr_of_this_method);
 
