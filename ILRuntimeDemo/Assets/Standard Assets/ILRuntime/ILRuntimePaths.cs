@@ -22,10 +22,18 @@ public static class ILRuntimePaths
         get { return string.Format("{0}/Library/ScriptAssemblies/{1}", DataPath, AssemblyCSharpName); }
     }
 
+    public static string FrameworkyCSharpPath
+    {
+        get { return string.Format("{0}/Library/ScriptAssemblies/Assembly-CSharp-firstpass.dll", DataPath); }
+    }
+
     public const string AssemblyCSharpMDBName = "Assembly-CSharp.dll.mdb";
     public static string AssemblyCSharpMDBPath
     {
         get { return string.Format("{0}/Library/ScriptAssemblies/{1}", DataPath, AssemblyCSharpMDBName); }
     }
 
+    public const string FrameworkMessagePath = "Assets/Editor/ILRuntime/FrameworkMessage.txt";
+    public const string BindingCodeMessagePath = "Assets/Editor/ILRuntime/BindingCodeMessage.txt";
+    public const string BindingCodePath = "Assets/Standard Assets/ILRuntime/Generated";
 }

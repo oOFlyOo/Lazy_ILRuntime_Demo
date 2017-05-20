@@ -1,10 +1,12 @@
 ﻿
 using System;
 using System.IO;
+using UnityEditor;
 using UnityEngine;
 
 public static class FileHelper
 {
+    #region File
     public static byte[] ReadAllBytes(string path)
     {
         try
@@ -19,6 +21,12 @@ public static class FileHelper
         }
     }
 
+    public static void WriteAllText(string path, string contents)
+    {
+        CreateDirectory(Path.GetDirectoryName(path));
+        File.WriteAllText(path, contents);
+    }
+
     public static void ReadFileStream(string path, FileMode mode, FileAccess access, Action<FileStream> callback, bool dispose = true)
     {
         if (callback != null)
@@ -31,10 +39,6 @@ public static class FileHelper
                 {
                     fs.Dispose();
                 }
-//                using (FileStream fs = new FileStream(path, mode, access))
-//                {
-//                    callback(fs);
-//                }
             }
             catch (Exception e)
             {
@@ -44,4 +48,21 @@ public static class FileHelper
             }
         }
     }
+    #endregion
+
+    #region Directory
+
+    public static bool CreateDirectory(string path)
+    {
+        if (!Directory.Exists(path))
+        {
+            Directory.CreateDirectory(path);
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    #endregion
 }

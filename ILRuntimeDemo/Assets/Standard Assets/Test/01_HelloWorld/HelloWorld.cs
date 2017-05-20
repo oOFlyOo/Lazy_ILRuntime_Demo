@@ -5,6 +5,17 @@ using ILRuntime.Runtime.Enviorment;
 
 public class HelloWorld : MonoBehaviour
 {
+    public enum TestEnum
+    {
+        Test = 1,    
+    }
+
+    public static int Property
+    {
+        get { return 1; }
+        private set { }
+    }
+
     //AppDomain是ILRuntime的入口，最好是在一个单例类中保存，整个游戏全局就一个，这里为了示例方便，每个例子里面都单独做了一个
     //大家在正式项目中请全局只创建一个AppDomain
     AppDomain appdomain;
@@ -34,7 +45,11 @@ public class HelloWorld : MonoBehaviour
     {
         //HelloWorld，第一次方法调用
         appdomain.Invoke("HotFix_Project.InstanceClass", "StaticFunTest", null, null);
+    }
 
+    public static void GenericMethod<T>()
+    {
+        Debug.Log(typeof(T));
     }
 
     void Update()

@@ -54,7 +54,7 @@ namespace HotFix_Project
             go.AddComponent<SomeMonoBehaviour2>();
             var mb = go.GetComponent<SomeMonoBehaviour2>();
             Debug.Log("!!!TestMonoBehaviour.RunTest2 mb= " + mb);
-            mb.Test2();
+//            mb.Test2();
         }
     }
 }

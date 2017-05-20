@@ -583,7 +583,11 @@ namespace ILRuntime.Runtime.Enviorment
             return scope is AssemblyNameReference ? ((AssemblyNameReference)scope).FullName : null;
         }
 
+#if !UNITY_EDITOR
         internal IType GetType(object token, IType contextType, IMethod contextMethod)
+#else
+        public IType GetType(object token, IType contextType, IMethod contextMethod)
+#endif
         {
             int hash = token.GetHashCode();
             IType res;

@@ -29,6 +29,9 @@ namespace HotFix_Project
         {
 //            UnityEngine.Debug.Log("!!! InstanceClass.StaticFunTest()");
             UnityEngine.Debug.Log(" Lazy !!! InstanceClass.StaticFunTest() Lazy");
+            HelloWorld.GenericMethod<InstanceClass>();
+            UnityEngine.Debug.Log(HelloWorld.Property);
+            UnityEngine.Debug.Log(HelloWorld.TestEnum.Test);
         }
 
         public static void StaticFunTest2(int a)

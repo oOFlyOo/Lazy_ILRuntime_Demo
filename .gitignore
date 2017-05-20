@@ -54,4 +54,8 @@ Temp/
 .vs
 ILRuntimeDemo/*.csproj
 ILRuntimeDemo/*.sln
-*.user
+ILRuntimeDemo/*.user
+
+# Project
+ILRuntimeDemo/Assets/Standard Assets/ILRuntime/GeneratedTest
+ILRuntimeDemo/Assets/Standard Assets/ILRuntime/Generated
