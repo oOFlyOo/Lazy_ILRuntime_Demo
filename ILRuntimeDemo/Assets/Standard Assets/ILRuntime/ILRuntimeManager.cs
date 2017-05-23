@@ -15,19 +15,19 @@ public class ILRuntimeManager: Singleton<ILRuntimeManager>
     private AppDomain _appDomain;
     private FileStream _mdbFileStream;
 
-    public static ILRuntimeManager Create()
+    public static ILRuntimeManager Create(bool binding = true)
     {
         if (Instance == null)
         {
             var ins = InternalCreate();
-            ins.LoadCreateAppDomain();
+            ins.LoadCreateAppDomain(binding);
             SetInstance(ins);
         }
 
         return Instance;
     }
 
-    private void LoadCreateAppDomain()
+    private void LoadCreateAppDomain(bool binding)
     {
         _appDomain = new AppDomain();
         FileHelper.ReadFileStream(ILRuntimePaths.AssemblyCSharpPath, FileMode.Open, FileAccess.Read, stream =>
@@ -53,24 +53,24 @@ public class ILRuntimeManager: Singleton<ILRuntimeManager>
             }
         });
 
-        if (Application.isPlaying)
-        {
-            Binding();
-        }
+        InitializeILRuntime(binding);
     }
 
 
-    private void Binding()
+    private void InitializeILRuntime(bool binding)
     {
-        var type = Type.GetType("ILRuntime.Binding.Generated.CLRBindings");
-        if (type != null)
+        if (Application.isPlaying && binding)
         {
-            var method = type.GetMethod("Initialize");
-            if (method != null)
+            var type = Type.GetType("ILRuntime.Binding.Generated.CLRBindings");
+            if (type != null)
             {
-                Debug.Log("ILR Binding");
+                var method = type.GetMethod("Initialize");
+                if (method != null)
+                {
+                    Debug.Log("InitializeILRuntime");
 
-                method.Invoke(null, new []{_appDomain});
+                    method.Invoke(null, new[] { _appDomain });
+                }
             }
         }
     }

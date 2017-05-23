@@ -16,6 +16,9 @@ public class HelloWorld : MonoBehaviour
         private set { }
     }
 
+    public static int Field = 2;
+    public static event UnityEngine.Events.UnityAction<float> UnityActionTest;
+
     //AppDomain是ILRuntime的入口，最好是在一个单例类中保存，整个游戏全局就一个，这里为了示例方便，每个例子里面都单独做了一个
     //大家在正式项目中请全局只创建一个AppDomain
     AppDomain appdomain;
@@ -50,6 +53,10 @@ public class HelloWorld : MonoBehaviour
     public static void GenericMethod<T>()
     {
         Debug.Log(typeof(T));
+        if (UnityActionTest != null)
+        {
+            UnityActionTest(1.1f);
+        }
     }
 
     void Update()

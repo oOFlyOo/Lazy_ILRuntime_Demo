@@ -468,8 +468,17 @@ namespace ILRuntime.CLR.TypeSystem
                                 baseType = adaptor;
                             }
                             else
-                                throw new TypeLoadException("Cannot find Adaptor for:" + baseType.TypeForCLR.ToString());
-                            //继承了其他系统类型
+                            {
+                                var msg = "Cannot find Adaptor for:" + baseType.TypeForCLR;
+                                if (UnityEngine.Application.isPlaying)
+                                {
+                                    throw new TypeLoadException(msg);
+                                }
+                                else
+                                {
+                                    UnityEngine.Debug.LogError("可以选择性无视：" + msg);
+                                }
+                            }                            //继承了其他系统类型
                             //env.logger.Log_Error("ScriptType:" + Name + " Based On a SystemType:" + BaseType.Name);
                             //HasSysBase = true;
                             //throw new Exception("不得继承系统类型，脚本类型系统和脚本类型系统是隔离的");

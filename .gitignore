@@ -59,3 +59,5 @@ ILRuntimeDemo/*.user
 # Project
 ILRuntimeDemo/Assets/Standard Assets/ILRuntime/GeneratedTest
 ILRuntimeDemo/Assets/Standard Assets/ILRuntime/Generated
+ILRuntimeDemo/Assets/Standard Assets/ILRuntime/Generated.meta
+ILRuntimeDemo/Assets/Standard Assets/ILRuntime/GeneratedTest.meta

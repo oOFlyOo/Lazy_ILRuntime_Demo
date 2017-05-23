@@ -1,18 +1,47 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using ILRuntime.CLR.Method;
 using ILRuntime.CLR.TypeSystem;
+using ILRuntime.Runtime.Intepreter.OpCodes;
 using Mono.Cecil;
+using Mono.Cecil.Cil;
 using UnityEngine;
 using AppDomain = ILRuntime.Runtime.Enviorment.AppDomain;
 
 public static class ILRuntimeBindingHelper
 {
+    private static Dictionary<string, AssemblyDefinition> _referenceDict = new Dictionary<string, AssemblyDefinition>();
+
+    private static AssemblyDefinition AssemblyResolver_ResolveFailure(object sender, AssemblyNameReference reference)
+    {
+        if (!_referenceDict.ContainsKey(reference.FullName))
+        {
+            // 这里也偷懒用了 Editor 的
+            foreach (var assembly in System.AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (assembly.GetName().Name == reference.Name)
+                {
+                    FileHelper.ReadFileStream(assembly.Location, FileMode.Open, FileAccess.Read, stream =>
+                    {
+                        _referenceDict[reference.FullName] = AssemblyDefinition.ReadAssembly(stream);
+                    });
+                }
+            }
+        }
+
+        return _referenceDict[reference.FullName];
+    }
+
     public static ModuleDefinition ReadModule(string path)
     {
         // 最好不要用 Editor 生成的 IL
-        return ModuleDefinition.ReadModule(path);
+        var def = ModuleDefinition.ReadModule(path);
+        //        var def = AssemblyDefinition.ReadAssembly(path, new ReaderParameters(ReadingMode.Immediate)).MainModule;
+        def.AssemblyResolver.ResolveFailure += AssemblyResolver_ResolveFailure;
+        return def;
     }
 
     public static Dictionary<CLRType, List<MemberReference>> GetAllMonoCecilReference(AppDomain domain, ModuleDefinition moduleDef)
@@ -20,22 +49,23 @@ public static class ILRuntimeBindingHelper
         var dict = new Dictionary<CLRType, List<MemberReference>>();
         foreach (var memberReference in moduleDef.GetMemberReferences())
         {
-            var clrType = GetCLRType(domain, memberReference.DeclaringType);
+            var clrType = GetIType(domain, memberReference.DeclaringType) as CLRType;
             if (!dict.ContainsKey(clrType))
             {
                 dict.Add(clrType, new List<MemberReference>());
             }
-            dict[clrType].Add(memberReference);
+            dict[clrType].AddIfWithout(memberReference);
 
-//            Debug.Log(memberReference.DeclaringType + "\t" + memberReference);
+            //            Debug.Log(memberReference.DeclaringType + "\t" + memberReference);
         }
         return dict;
     }
 
-    public static List<ILRuntimeBindingTypeInfo> GetAllReference(AppDomain domain,
+    public static List<ILRuntimeBindingTypeInfo> GetAllReference(AppDomain domain, ModuleDefinition moduleDef,
         Dictionary<CLRType, List<MemberReference>> monocecilDict)
     {
         var list = new List<ILRuntimeBindingTypeInfo>();
+        var genericDict = new Dictionary<string, ILRuntimeBindingTypeInfo>();
         foreach (KeyValuePair<CLRType, List<MemberReference>> pair in monocecilDict)
         {
             var type = pair.Key;
@@ -52,7 +82,7 @@ public static class ILRuntimeBindingHelper
                     var typeList = new List<IType>();
                     foreach (var parameterDefinition in methodRef.Parameters)
                     {
-                        typeList.Add(GetCLRType(domain, parameterDefinition.ParameterType, type));
+                        typeList.Add(GetIType(domain, parameterDefinition.ParameterType, type));
                     }
                     if (IsConstructor(methodRef.Name))
                     {
@@ -74,23 +104,62 @@ public static class ILRuntimeBindingHelper
                         }
                         else
                         {
-                            typeInfo.Methods.AddIfWithout(type.GetMethod(methodRef.Name, typeList.Count) as CLRMethod);
+                            genericDict[methodRef.FullName] = typeInfo;
                         }
                     }
                 }
             }
 
             list.Add(typeInfo);
-
-//            Debug.Log(typeInfo);
         }
+
+        var hasCheckGenericList = new List<string>();
+        foreach (var typeDefinition in moduleDef.GetTypes())
+        {
+            foreach (var methodDefinition in typeDefinition.Methods)
+            {
+                if (methodDefinition.HasBody)
+                {
+                    foreach (var instruction in methodDefinition.Body.Instructions)
+                    {
+                        if (instruction.Operand is GenericInstanceMethod)
+                        {
+                            var genericInstanceMethod = instruction.Operand as GenericInstanceMethod;
+                            var fullName = genericInstanceMethod.ElementMethod.FullName;
+                            if (genericDict.ContainsKey(fullName))
+                            {
+                                var ilType = GetIType(domain, typeDefinition) as ILType;
+                                var ilMethod = new ILMethod(methodDefinition, GetIType(domain, typeDefinition) as ILType, domain);
+                                bool va;
+                                var method = domain.GetMethod(genericInstanceMethod, ilType, ilMethod, out va);
+                                genericDict[fullName].Methods.AddIfWithout(method as CLRMethod);
+
+                                hasCheckGenericList.AddIfWithout(fullName);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (hasCheckGenericList.Count != genericDict.Count)
+        {
+            foreach (var pair in genericDict)
+            {
+                if (!hasCheckGenericList.Contains(pair.Key))
+                {
+                    Debug.LogError("没有找到引用：" + pair.Key);
+                }
+            }
+        }
+
         return list;
     }
 
-    private static CLRType GetCLRType(AppDomain domain, TypeReference typeRef, IType contextType = null, IMethod contextMethod = null)
+    private static IType GetIType(AppDomain domain, TypeReference typeRef, IType contextType = null, IMethod contextMethod = null)
     {
-        return domain.GetType(typeRef, contextType, contextMethod) as CLRType;
-//        return domain.GetType(string.Format("{0}, {1}", typeRef.FullName, typeRef.Scope.Name)) as CLRType;
+        return domain.GetType(typeRef, contextType, contextMethod);
+        //        return domain.GetType(string.Format("{0}, {1}", typeRef.FullName, typeRef.Scope.Name)) as CLRType;
     }
 
     private static bool IsConstructor(string methodName)

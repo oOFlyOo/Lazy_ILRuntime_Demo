@@ -949,7 +949,7 @@ namespace ILRuntime.Runtime.Enviorment
             return res;
         }
 
-        internal IMethod GetMethod(object token, ILType contextType,ILMethod contextMethod, out bool invalidToken)
+        public IMethod GetMethod(object token, ILType contextType,ILMethod contextMethod, out bool invalidToken)
         {
             string methodname = null;
             string typename = null;
