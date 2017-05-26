@@ -35,5 +35,6 @@ public static class ILRuntimePaths
 
     public const string FrameworkMessagePath = "Assets/Editor/ILRuntime/FrameworkMessage.txt";
     public const string BindingCodeMessagePath = "Assets/Editor/ILRuntime/BindingCodeMessage.txt";
-    public const string BindingCodePath = "Assets/Standard Assets/ILRuntime/Generated";
+    public const string BindingCodePath = "Assets/Standard Assets/ILRuntime/Binding/Generated";
+    public const string AdaptorCodePath = "Assets/Standard Assets/ILRuntime/Adaptors/Generated";
 }

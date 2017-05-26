@@ -40,6 +40,21 @@ namespace HotFix_Project
         {
             Debug.Log("!!! SomeMonoBehaviour2.Test2");
         }
+
+        private void OnEnable()
+        {
+            Debug.Log("!!! SomeMonoBehaviour2.OnEnable");
+        }
+
+        private void OnDisable()
+        {
+            Debug.Log("!!! SomeMonoBehaviour2.OnDisable");
+        }
+
+        private void OnApplicationQuit()
+        {
+            Debug.Log("!!! SomeMonoBehaviour2.OnApplicationQuit");
+        }
     }
 
     public class TestMonoBehaviour

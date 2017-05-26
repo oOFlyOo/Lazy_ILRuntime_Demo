@@ -5,6 +5,7 @@ using System.IO;
 using ILRuntime.CLR.TypeSystem;
 using ILRuntime.CLR.Method;
 using ILRuntime.CLR.Utils;
+using ILRuntime.Runtime.Adaptor;
 using ILRuntime.Runtime.Intepreter;
 using ILRuntime.Runtime.Stack;
 using ILRuntime.Runtime.Enviorment;
@@ -41,7 +42,7 @@ public class MonoBehaviourDemo : MonoBehaviour
     unsafe void InitializeILRuntime()
     {
         //这里做一些ILRuntime的注册
-        appdomain.RegisterCrossBindingAdaptor(new MonoBehaviourAdapter());
+//        appdomain.RegisterCrossBindingAdaptor(new MonoBehaviourAdapter());
     }
 
     //这个仅为演示demo用，平时不要这么调用
@@ -72,7 +73,7 @@ public class MonoBehaviourDemo : MonoBehaviour
         Debug.Log("下面我们来通过热更DLL往这个GameObject上挂一个热更里面的MonoBehaviour");
         try
         {
-            appdomain.Invoke("HotFix_Project.TestMonoBehaviour", "RunTest", null, gameObject);
+//            appdomain.Invoke("HotFix_Project.TestMonoBehaviour", "RunTest", null, gameObject);
         }
         catch(System.Exception ex)
         {
@@ -81,7 +82,7 @@ public class MonoBehaviourDemo : MonoBehaviour
         Debug.Log("很不幸，报错了，因为GameObject.AddComponent<T>这个方法是Unity实现的，他并不可能取到热更DLL内部的类型");
         Debug.Log("因此我们需要挟持AddComponent方法，然后自己实现");
         Debug.Log("我们先销毁掉之前创建的不合法的MonoBehaviour");
-        Object.Destroy(GetComponent<MonoBehaviourAdapter.Adaptor>());
+//        Object.Destroy(GetComponent<MonoBehaviourAdapter.Adaptor>());
         SetupCLRRedirection();
         appdomain.Invoke("HotFix_Project.TestMonoBehaviour", "RunTest", null, gameObject);
 
@@ -89,7 +90,7 @@ public class MonoBehaviourDemo : MonoBehaviour
         Debug.Log("下面做另外一个实验");
         try
         {
-            appdomain.Invoke("HotFix_Project.TestMonoBehaviour", "RunTest2", null, gameObject);
+//            appdomain.Invoke("HotFix_Project.TestMonoBehaviour", "RunTest2", null, gameObject);
         }
         catch(System.Exception ex)
         {
@@ -147,12 +148,13 @@ public class MonoBehaviourDemo : MonoBehaviour
         RetryCLRRedirection2();
     }
 
-    MonoBehaviourAdapter.Adaptor GetComponent(ILType type)
+    MonoBehaviourAdapter.MonoAdaptor GetComponent(ILType type)
     {
-        var arr = GetComponents<MonoBehaviourAdapter.Adaptor>();
+        var monoAdaptorType = ILRMonoAdaptorHelper.GetMonoAdaptorType(type);
+        var arr = GetComponents(monoAdaptorType);
         for(int i = 0; i < arr.Length; i++)
         {
-            var instance = arr[i];
+            var instance = arr[i] as MonoBehaviourAdapter.MonoAdaptor;
             if(instance.ILInstance != null && instance.ILInstance.Type == type)
             {
                 return instance;
@@ -189,16 +191,16 @@ public class MonoBehaviourDemo : MonoBehaviour
                 //热更DLL内的类型比较麻烦。首先我们得自己手动创建实例
                 var ilInstance = new ILTypeInstance(type as ILType, false);//手动创建实例是因为默认方式会new MonoBehaviour，这在Unity里不允许
                 //接下来创建Adapter实例
-                var clrInstance = instance.AddComponent<MonoBehaviourAdapter.Adaptor>();
+                var monoAdaptorType = ILRMonoAdaptorHelper.GetMonoAdaptorType(type as ILType);
+                var clrInstance = instance.AddComponent(monoAdaptorType) as MonoBehaviourAdapter.MonoAdaptor;
                 //unity创建的实例并没有热更DLL里面的实例，所以需要手动赋值
-                clrInstance.ILInstance = ilInstance;
-                clrInstance.AppDomain = __domain;
+                clrInstance.Init(ilInstance, __domain);
                 //这个实例默认创建的CLRInstance不是通过AddComponent出来的有效实例，所以得手动替换
-                ilInstance.CLRInstance = clrInstance;
+//                ilInstance.CLRInstance = clrInstance;
 
                 res = clrInstance.ILInstance;//交给ILRuntime的实例应该为ILInstance
 
-                clrInstance.Awake();//因为Unity调用这个方法时还没准备好所以这里补调一次
+//                clrInstance.Awake();//因为Unity调用这个方法时还没准备好所以这里补调一次
             }
 
             return ILIntepreter.PushObject(ptr, __mStack, res);
@@ -233,10 +235,11 @@ public class MonoBehaviourDemo : MonoBehaviour
             else
             {
                 //因为所有DLL里面的MonoBehaviour实际都是这个Component，所以我们只能全取出来遍历查找
-                var clrInstances = instance.GetComponents<MonoBehaviourAdapter.Adaptor>();
+                var monoAdaptorType = ILRMonoAdaptorHelper.GetMonoAdaptorType(type as ILType);
+                var clrInstances = instance.GetComponents(monoAdaptorType);
                 for(int i = 0; i < clrInstances.Length; i++)
                 {
-                    var clrInstance = clrInstances[i];
+                    var clrInstance = clrInstances[i] as MonoBehaviourAdapter.MonoAdaptor;
                     if (clrInstance.ILInstance != null)//ILInstance为null, 表示是无效的MonoBehaviour，要略过
                     {
                         if (clrInstance.ILInstance.Type == type)

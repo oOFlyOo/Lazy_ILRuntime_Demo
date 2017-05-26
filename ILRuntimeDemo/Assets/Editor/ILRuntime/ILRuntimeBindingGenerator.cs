@@ -15,7 +15,7 @@ using AppDomain = ILRuntime.Runtime.Enviorment.AppDomain;
 
 public class ILRuntimeBindingGenerator
 {
-    public static void CLRBinding()
+    public static void Generate()
     {
         var domain = ILRuntimeManager.Create().Domain;
 

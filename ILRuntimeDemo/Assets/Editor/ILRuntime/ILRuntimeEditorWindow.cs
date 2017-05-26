@@ -17,12 +17,19 @@ public class ILRuntimeEditorWindow: EditorWindow
 
     private void OnGUI()
     {
-        EditorGUILayout.Space();
         _scrollPos = EditorGUILayout.BeginScrollView(_scrollPos);
         {
+            EditorGUILayout.Space();
             if (GUILayout.Button("生成绑定"))
             {
-                ILRuntimeBindingGenerator.CLRBinding();
+                ILRuntimeBindingGenerator.Generate();
+                AssetDatabase.Refresh();
+            }
+
+            EditorGUILayout.Space();
+            if (GUILayout.Button("生成 MonoMessage"))
+            {
+                ILRuntimeMonoAdaptorGenerator.Generate();
                 AssetDatabase.Refresh();
             }
         }

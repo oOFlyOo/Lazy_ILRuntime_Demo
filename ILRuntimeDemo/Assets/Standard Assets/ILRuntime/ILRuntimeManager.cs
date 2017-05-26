@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using ILRuntime.Runtime.Enviorment;
 using UnityEngine;
 using AppDomain = ILRuntime.Runtime.Enviorment.AppDomain;
 
@@ -15,19 +16,19 @@ public class ILRuntimeManager: Singleton<ILRuntimeManager>
     private AppDomain _appDomain;
     private FileStream _mdbFileStream;
 
-    public static ILRuntimeManager Create(bool binding = true)
+    public static ILRuntimeManager Create(bool initBinding = true, bool initAdaptor = true)
     {
         if (Instance == null)
         {
             var ins = InternalCreate();
-            ins.LoadCreateAppDomain(binding);
+            ins.LoadCreateAppDomain(initBinding, initAdaptor);
             SetInstance(ins);
         }
 
         return Instance;
     }
 
-    private void LoadCreateAppDomain(bool binding)
+    private void LoadCreateAppDomain(bool initBinding, bool initAdaptor)
     {
         _appDomain = new AppDomain();
         FileHelper.ReadFileStream(ILRuntimePaths.AssemblyCSharpPath, FileMode.Open, FileAccess.Read, stream =>
@@ -53,24 +54,48 @@ public class ILRuntimeManager: Singleton<ILRuntimeManager>
             }
         });
 
-        InitializeILRuntime(binding);
+        InitializeILRuntime(initBinding, initAdaptor);
     }
 
 
-    private void InitializeILRuntime(bool binding)
+    private void InitializeILRuntime(bool initBinding, bool initAdaptor)
     {
-        if (Application.isPlaying && binding)
+        if (Application.isPlaying && initBinding)
         {
-            var type = Type.GetType("ILRuntime.Binding.Generated.CLRBindings");
-            if (type != null)
-            {
-                var method = type.GetMethod("Initialize");
-                if (method != null)
-                {
-                    Debug.Log("InitializeILRuntime");
+            InitializeBinding();
+        }
 
-                    method.Invoke(null, new[] { _appDomain });
-                }
+        if (initAdaptor)
+        {
+            InitializeAdaptor();
+        }
+    }
+
+    private void InitializeBinding()
+    {
+        var type = Type.GetType("ILRuntime.Binding.Generated.CLRBindings");
+        if (type != null)
+        {
+            var method = type.GetMethod("Initialize");
+            if (method != null)
+            {
+                Debug.Log("InitializeILRuntime");
+
+                method.Invoke(null, new[] { _appDomain });
+            }
+        }
+    }
+
+    private void InitializeAdaptor()
+    {
+        var adaptorNamespace = "ILRuntime.Runtime.Adaptor";
+        var adaptorType = typeof(CrossBindingAdaptor);
+        var types = GetType().Assembly.GetTypes();
+        foreach (var type1 in types)
+        {
+            if (type1.Namespace == adaptorNamespace && type1.IsSubclassOf(adaptorType))
+            {
+                _appDomain.RegisterCrossBindingAdaptor(Activator.CreateInstance(type1) as CrossBindingAdaptor);
             }
         }
     }
