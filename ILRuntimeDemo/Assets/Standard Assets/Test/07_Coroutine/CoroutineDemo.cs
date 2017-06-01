@@ -33,7 +33,7 @@ public class CoroutineDemo : MonoBehaviour
 
         yield return null;
 
-        InitializeILRuntime();
+//        InitializeILRuntime();
         OnHotFixLoaded();
     }
 

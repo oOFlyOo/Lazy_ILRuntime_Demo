@@ -7,7 +7,7 @@ using ILRuntime.Runtime.Stack;
 
 namespace ILRuntime.Runtime
 {
-    static class Extensions
+    public static class Extensions
     {
         public static void GetClassName(this Type type, out string clsName, out string realClsName, out bool isByRef, bool simpleClassName = false)
         {

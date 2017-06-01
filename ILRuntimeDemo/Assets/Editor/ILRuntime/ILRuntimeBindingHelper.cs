@@ -2,17 +2,17 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.Reflection;
+using System.Text;
 using ILRuntime.CLR.Method;
 using ILRuntime.CLR.TypeSystem;
-using ILRuntime.Runtime.Intepreter.OpCodes;
 using Mono.Cecil;
-using Mono.Cecil.Cil;
 using UnityEngine;
 using AppDomain = ILRuntime.Runtime.Enviorment.AppDomain;
 
 public static class ILRuntimeBindingHelper
 {
+    #region 获取依赖
     private static Dictionary<string, AssemblyDefinition> _referenceDict = new Dictionary<string, AssemblyDefinition>();
 
     private static AssemblyDefinition AssemblyResolver_ResolveFailure(object sender, AssemblyNameReference reference)
@@ -116,6 +116,8 @@ public static class ILRuntimeBindingHelper
         var hasCheckGenericList = new List<string>();
         foreach (var typeDefinition in moduleDef.GetTypes())
         {
+            CheckCrossingAdaptor(typeDefinition, domain);
+
             foreach (var methodDefinition in typeDefinition.Methods)
             {
                 if (methodDefinition.HasBody)
@@ -132,8 +134,19 @@ public static class ILRuntimeBindingHelper
                                 var ilMethod = new ILMethod(methodDefinition, GetIType(domain, typeDefinition) as ILType, domain);
                                 bool va;
                                 var method = domain.GetMethod(genericInstanceMethod, ilType, ilMethod, out va);
-                                genericDict[fullName].Methods.AddIfWithout(method as CLRMethod);
-
+                                var match = false;
+                                foreach (var clrMethod in genericDict[fullName].Methods)
+                                {
+                                    if (clrMethod.ToString() == method.ToString())
+                                    {
+                                        match = true;
+                                        break;
+                                    }
+                                }
+                                if (!match)
+                                {
+                                    genericDict[fullName].Methods.AddIfWithout(method as CLRMethod);
+                                }
                                 hasCheckGenericList.AddIfWithout(fullName);
                             }
                         }
@@ -166,4 +179,131 @@ public static class ILRuntimeBindingHelper
     {
         return methodName == ".ctor";
     }
+
+    private static bool CheckCrossingAdaptor(TypeDefinition typeDef, AppDomain domain)
+    {
+        var ilType = GetIType(domain, typeDef) as ILType;
+
+        try
+        {
+            return !(ilType.BaseType is CLRType);
+        }
+        catch (Exception e)
+        {
+            if (ilType.Name == "TestInheritance")
+            {
+                Debug.Log(e.Message);
+
+                return false;
+            }
+            else
+            {
+                throw e;
+            }
+        }
+    }
+    #endregion
+
+    #region 生成代码
+    private static readonly StringBuilder _stringBuilder = new StringBuilder();
+
+    private static void ClearStringBuilder()
+    {
+        _stringBuilder.Length = 0;
+    }
+
+    private static void StringBuilderAppend(string str)
+    {
+        _stringBuilder.Append(str);
+    }
+
+    private static string StringBuilderValue()
+    {
+        return _stringBuilder.ToString();
+    }
+
+    public static string GetParamsStr(ParameterInfo[] parameters)
+    {
+        ClearStringBuilder();
+
+        var first = true;
+        foreach (var param in parameters)
+        {
+            if (first)
+            {
+                first = false;
+            }
+            else
+            {
+                StringBuilderAppend(", ");
+            }
+
+            if (param.IsOut)
+            {
+                StringBuilderAppend("out ");
+            }
+            else if (param.ParameterType.IsByRef)
+            {
+                StringBuilderAppend("ref ");
+            }
+            StringBuilderAppend(param.Name);
+        }
+
+        return StringBuilderValue();
+    }
+
+
+    public static string GetParamTypesStr(ParameterInfo[] parameters, Type returnType = null)
+    {
+        ClearStringBuilder();
+
+        var first = true;
+        foreach (var param in parameters)
+        {
+            if (first)
+            {
+                first = false;
+            }
+            else
+            {
+                StringBuilderAppend(", ");
+            }
+
+            StringBuilderAppend(param.ParameterType.FullName);
+        }
+
+        if (returnType != null && returnType != typeof(void))
+        {
+            if (!first)
+            {
+                StringBuilderAppend(", ");
+            }
+            StringBuilderAppend(returnType.FullName);
+        }
+
+        return StringBuilderValue();
+    }
+
+    public static string GetGenericParamTypesStr(Type[] parameters)
+    {
+        ClearStringBuilder();
+
+        var first = true;
+        foreach (var param in parameters)
+        {
+            if (first)
+            {
+                first = false;
+            }
+            else
+            {
+                StringBuilderAppend(", ");
+            }
+
+            StringBuilderAppend(param.FullName);
+        }
+
+        return StringBuilderValue();
+    }
+    #endregion
 }

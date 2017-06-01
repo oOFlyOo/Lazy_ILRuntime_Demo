@@ -384,7 +384,7 @@ namespace ILRuntime.CLR.TypeSystem
                             firstCLRInterface = adaptor;
                         }
                         else
-                            throw new TypeLoadException("Cannot find Adaptor for:" + interfaces[i].TypeForCLR.ToString());
+                            throw new TypeLoadException(string.Format("Cannot find Adaptor for:{0} by {1}", interfaces[i].TypeForCLR, FullName));
                     }
                 }
             }
@@ -444,7 +444,7 @@ namespace ILRuntime.CLR.TypeSystem
                         }
                     }
                     if (baseType == null)
-                        throw new TypeLoadException("Cannot find Adaptor for:" + definition.BaseType.FullName);
+                        throw new TypeLoadException(string.Format("Cannot find Adaptor for:{0} by {1}", definition.BaseType.FullName, FullName));
                 }
                 else
                 {
@@ -469,15 +469,7 @@ namespace ILRuntime.CLR.TypeSystem
                             }
                             else
                             {
-                                var msg = "Cannot find Adaptor for:" + baseType.TypeForCLR;
-                                if (UnityEngine.Application.isPlaying)
-                                {
-                                    throw new TypeLoadException(msg);
-                                }
-                                else
-                                {
-                                    UnityEngine.Debug.LogError("可以选择性无视：" + msg);
-                                }
+                                throw new TypeLoadException(string.Format("Cannot find Adaptor for:{0} by {1}", baseType.FullName, FullName));
                             }                            //继承了其他系统类型
                             //env.logger.Log_Error("ScriptType:" + Name + " Based On a SystemType:" + BaseType.Name);
                             //HasSysBase = true;
@@ -599,6 +591,10 @@ namespace ILRuntime.CLR.TypeSystem
                         if (genericArguments != null && i.GenericParameterCount == genericArguments.Length)
                         {
                             genericMethod = CheckGenericParams(i, param, ref match);
+                            if (match)
+                            {
+                                break;
+                            }
                         }
                         else
                         {

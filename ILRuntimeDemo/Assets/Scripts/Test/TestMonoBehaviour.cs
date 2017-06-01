@@ -62,6 +62,7 @@ namespace HotFix_Project
         public static void RunTest(GameObject go)
         {
             go.AddComponent<SomeMonoBehaviour>();
+            go.AddComponent<SomeMonoBehaviour>();
         }
 
         public static void RunTest2(GameObject go)

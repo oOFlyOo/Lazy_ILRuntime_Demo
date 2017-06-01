@@ -57,8 +57,8 @@ ILRuntimeDemo/*.sln
 ILRuntimeDemo/*.user
 
 # Project
-ILRuntimeDemo/Assets/Standard Assets/ILRuntime/GeneratedTest
-ILRuntimeDemo/Assets/Standard Assets/ILRuntime/GeneratedTest.meta
+ILRuntimeDemo/Assets/Standard Assets/ILRuntime/Binding/GeneratedTest
+ILRuntimeDemo/Assets/Standard Assets/ILRuntime/Binding/GeneratedTest.meta
 ILRuntimeDemo/Assets/Editor/ILRuntime/BindingCodeMessage.txt
 ILRuntimeDemo/Assets/Editor/ILRuntime/BindingCodeMessage.txt.meta
 ILRuntimeDemo/Assets/Editor/ILRuntime/FrameworkMessage.txt.meta

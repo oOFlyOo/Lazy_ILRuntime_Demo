@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using ILRuntime.CLR.Method;
 using ILRuntime.CLR.TypeSystem;
+using ILRuntime.Runtime;
 using Mono.Cecil;
 using UnityEditor.Graphs;
 using UnityEngine;
@@ -74,6 +75,8 @@ public class ILRuntimeBindingGenerator
 
         SortBindingTypeInfoList(typeInfoList);
 
+        typeInfoList = CheckTypeInfoList(typeInfoList);
+
         GenerateCLRBindingCode(domain, typeInfoList);
 
         GenerateCLRBindingMessage(typeInfoList);
@@ -115,12 +118,40 @@ public class ILRuntimeBindingGenerator
         }
     }
 
+    private static List<ILRuntimeBindingTypeInfo> CheckTypeInfoList(List<ILRuntimeBindingTypeInfo> typeInfoList)
+    {
+        var newList = new List<ILRuntimeBindingTypeInfo>();
+        foreach (var typeInfo in typeInfoList)
+        {
+            if (!ShouldRemoveTypeInfo(typeInfo))
+            {
+                newList.Add(typeInfo);
+            }
+            else
+            {
+                Debug.Log(string.Format("忽略 Attribute：{0}", typeInfo));
+            }
+        }
+        return newList;
+    }
+
+    private static bool ShouldRemoveTypeInfo(ILRuntimeBindingTypeInfo typeInfo)
+    {
+        var realType = typeInfo.DeclaringType.TypeForCLR;
+        if (realType.IsSubclassOf(typeof (Attribute)))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     private static void GenerateCLRBindingMessage(List<ILRuntimeBindingTypeInfo> typeInfoList)
     {
         var sb = new StringBuilder();
+        sb.AppendLine();
         foreach (var info in typeInfoList)
         {
-            sb.AppendLine();
             sb.AppendLine(info.ToString());
         }
 
@@ -143,15 +174,23 @@ namespace ILRuntime.Binding.Generated
         /// </summary>
         public static void Initialize(AppDomain domain)
         {
-            RegisterBinding(domain);
+            RegisterBindingClass(domain);
             RegisterDelegateConvertor(domain.DelegateManager);
             RegisterDelegate(domain.DelegateManager);
         }
 
-        private static void RegisterBinding(AppDomain domain)
+        private static void RegisterBindingClass(AppDomain domain)
         {
 ");
-
+        foreach (var info in typeInfoList)
+        {
+            var className = GenerateRegisterBindingClass(domain, info);
+            if (!string.IsNullOrEmpty(className))
+            {
+                sb.Append(string.Format(@"
+            {0}.Register(domain);", className));
+            }
+        }
         sb.Append(@"
         }
 
@@ -175,6 +214,69 @@ namespace ILRuntime.Binding.Generated
 
         File.WriteAllText(GetBindingCodePath("CLRBindings"), sb.ToString());
     }
+
+    #region 绑定类
+    private static string GenerateRegisterBindingClass(AppDomain domain, ILRuntimeBindingTypeInfo typeInfo)
+    {
+        if (ShouldSkipTypeInfo(typeInfo))
+        {
+            return null;
+        }
+
+        string clsName, realClsName;
+        bool isByRef;
+        typeInfo.DeclaringType.TypeForCLR.GetClassName(out clsName, out realClsName, out isByRef);
+
+        var sb = new StringBuilder();
+        var methodSb = new StringBuilder();
+
+        sb.Append(string.Format(@"
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+
+using ILRuntime.CLR.TypeSystem;
+using ILRuntime.CLR.Method;
+using ILRuntime.Runtime.Enviorment;
+using ILRuntime.Runtime.Intepreter;
+using ILRuntime.Runtime.Stack;
+using ILRuntime.Reflection;
+using ILRuntime.CLR.Utils;
+
+namespace ILRuntime.Binding.Generated
+{{
+    unsafe class {0}
+    {{
+        public static void Register(ILRuntime.Runtime.Enviorment.AppDomain domain)
+        {{
+            var flag = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
+            MethodBase method;
+            Type[] args;
+            Type type = typeof({1});
+", clsName, realClsName));
+
+        sb.Append(string.Format(@"
+        }}
+{0}
+    }}
+}}
+", methodSb));
+
+        FileHelper.WriteAllText(GetBindingCodePath(clsName), sb.ToString());
+
+        return clsName;
+    }
+
+    private static bool ShouldSkipTypeInfo(ILRuntimeBindingTypeInfo typeInfo)
+    {
+        if (typeInfo.DeclaringType.IsDelegate)
+        {
+            return true;
+        }
+
+        return false;
+    }
+#endregion
 
     private static List<CLRType> GetAllCrossDelegateCLRType(AppDomain domain, List<ILRuntimeBindingTypeInfo> typeInfoList)
     {
@@ -232,13 +334,6 @@ namespace ILRuntime.Binding.Generated
 
         var paramSB = new StringBuilder();
         var genericParamSB = new StringBuilder();
-        var paramNames = new[]
-        {
-            "a",
-            "a, b",
-            "a, b, c",
-            "a, b, c, d",
-        };
         foreach (var clrType in sortList)
         {
             if (!Regex.IsMatch(clrType.Name, @"^((Action)|(Func))`\d$"))
@@ -248,27 +343,14 @@ namespace ILRuntime.Binding.Generated
                 var name = clrType.FullName.Split('`')[0];
                 paramSB.Length = 0;
                 genericParamSB.Length = 0;
-                var first = true;
-                foreach (var parameter in invokeMethod.Parameters)
-                {
-                    var paramName = parameter.FullName;
-                    paramSB.Append(first ? paramName : string.Format(", {0}", paramName));
-                    first = false;
-                }
-                if (!returnVoid)
-                {
-                    var paramName = invokeMethod.ReturnType.FullName;
-                    paramSB.Append(first ? paramName : string.Format(", {0}", paramName));
-                }
+                paramSB.Append(ILRuntimeBindingHelper.GetParamTypesStr(invokeMethod.MethodInfo.GetParameters(),
+                    invokeMethod.ReturnType.TypeForCLR));
                 if (clrType.IsGenericInstance)
                 {
                     var genericFirst = true;
                     genericParamSB.Append("<");
-                    foreach (var arg in clrType.TypeForCLR.GetGenericArguments())
-                    {
-                        genericParamSB.Append(genericFirst ? arg.FullName : string.Format(", {0}", arg.FullName));
-                        genericFirst = false;
-                    }
+                    genericParamSB.Append(
+                        ILRuntimeBindingHelper.GetGenericParamTypesStr(clrType.TypeForCLR.GetGenericArguments()));
                     genericParamSB.Append(">");
                 }
 
@@ -280,7 +362,7 @@ namespace ILRuntime.Binding.Generated
                     {1}((System.{2}<{3}>)action)({4});
                 }});
             }});
-", name, returnVoid ? "" : "return ", returnVoid ? "Action" : "Func", paramSB, paramNames[invokeMethod.ParameterCount - 1], genericParamSB));
+", name, returnVoid ? "" : "return ", returnVoid ? "Action" : "Func", paramSB, ILRuntimeBindingHelper.GetParamsStr(invokeMethod.MethodInfo.GetParameters()), genericParamSB));
             }
         }
     }
@@ -306,18 +388,7 @@ namespace ILRuntime.Binding.Generated
             dm.RegisterMethodDelegate<"
                 : @"
             dm.RegisterFunctionDelegate<");
-            var first = true;
-            foreach (var parameter in clrMethod.Parameters)
-            {
-                var name = parameter.FullName;
-                sb.Append(first ? name : string.Format(", {0}", name));
-                first = false;
-            }
-            if (!returnVoid)
-            {
-                var name = clrMethod.ReturnType.FullName;
-                sb.Append(first ? name : string.Format(", {0}", name));
-            }
+            sb.Append(ILRuntimeBindingHelper.GetParamTypesStr(clrMethod.MethodInfo.GetParameters(), clrMethod.ReturnType.TypeForCLR));
             sb.Append(@">();");
         }
     }
