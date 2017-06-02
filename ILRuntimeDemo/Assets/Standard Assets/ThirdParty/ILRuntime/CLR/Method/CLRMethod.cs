@@ -39,7 +39,7 @@ namespace ILRuntime.CLR.Method
         {
             get
             {
-                return def.Name;
+                return isConstructor ? cDef.Name : def.Name;
             }
         }
         public bool HasThis
@@ -359,6 +359,10 @@ namespace ILRuntime.CLR.Method
 
         public override string ToString()
         {
+            if (redirect != null)
+            {
+                return string.Format("Redirect by {0} {1}", redirect.Method.DeclaringType, redirect.Method);
+            }
             if (def != null)
                 return def.ToString();
             else

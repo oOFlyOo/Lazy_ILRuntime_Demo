@@ -333,7 +333,7 @@ namespace ILRuntime.CLR.TypeSystem
                             if (match && genericMethod == null)
                             {
                                 genericMethod = i;
-                                break;
+//                                break;
                             }
                         }
                         else

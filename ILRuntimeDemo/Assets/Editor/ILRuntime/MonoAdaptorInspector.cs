@@ -20,9 +20,11 @@ public class MonoAdaptorInspector : Editor
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("MonoMessage:");
             EditorGUI.indentLevel = 1;
-            foreach (var pair in adaptor.MonoMethodDict)
             {
-                EditorGUILayout.LabelField(pair.Key);
+                foreach (var pair in adaptor.MonoMethodDict)
+                {
+                    EditorGUILayout.LabelField(pair.Key);
+                }
             }
             EditorGUI.indentLevel = 0;
         }

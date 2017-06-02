@@ -591,10 +591,6 @@ namespace ILRuntime.CLR.TypeSystem
                         if (genericArguments != null && i.GenericParameterCount == genericArguments.Length)
                         {
                             genericMethod = CheckGenericParams(i, param, ref match);
-                            if (match)
-                            {
-                                break;
-                            }
                         }
                         else
                         {

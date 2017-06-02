@@ -18,7 +18,7 @@ public class ILRuntimeBindingGenerator
 {
     public static void Generate()
     {
-        var domain = ILRuntimeManager.Create().Domain;
+        var domain = ILRuntimeManager.Create(false).Domain;
 
         var moduleDef = ILRuntimeBindingHelper.ReadModule(ILRuntimePaths.AssemblyCSharpPath);
         GenerateFramworkMessage(moduleDef);
@@ -255,6 +255,13 @@ namespace ILRuntime.Binding.Generated
             Type type = typeof({1});
 ", clsName, realClsName));
 
+        GenerateCommonCode(typeInfo.DeclaringType.TypeForCLR, methodSb);
+
+        foreach (var constructor in typeInfo.Constructors)
+        {
+            sb.Append(GenerateConstructor(constructor, methodSb));
+        }
+
         sb.Append(string.Format(@"
         }}
 {0}
@@ -270,6 +277,90 @@ namespace ILRuntime.Binding.Generated
     private static bool ShouldSkipTypeInfo(ILRuntimeBindingTypeInfo typeInfo)
     {
         if (typeInfo.DeclaringType.IsDelegate)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void GenerateCommonCode(Type type, StringBuilder sb)
+    {
+        if (!type.IsValueType)
+        {
+            return;
+        }
+    }
+
+    private static string GenerateConstructor(CLRMethod method, StringBuilder sb)
+    {
+        if (ShouldSkipMethod(method))
+        {
+            return null;
+        }
+
+        var methodName = ILRuntimeBindingHelper.GetMethodName(method);
+
+        sb.Append(string.Format(@"
+        private static StackObject* {0}(ILIntepreter __intp, StackObject* __esp, List<object> __mStack, CLRMethod __method, bool isNewObj)
+        {{
+            ILRuntime.Runtime.Enviorment.AppDomain __domain = __intp.AppDomain;
+            StackObject* ptr_of_this_method;
+            StackObject* __ret = ILIntepreter.Minus(__esp, {1});
+", methodName, method.ParameterCount));
+
+        var parameters = method.ConstructorInfo.GetParameters();
+        var tabs = "\t\t\t";
+        for (int i = parameters.Length - 1; i >= 0; i--)
+        {
+            var param = parameters[i];
+            sb.AppendLine(string.Format(@"{0}ptr_of_this_method = ILIntepreter.Minus(__esp, {1});", tabs, parameters.Length - i));
+            if (param.ParameterType.IsByRef)
+            {
+                sb.AppendLine(string.Format("{0}ptr_of_this_method = ILIntepreter.GetObjectAndResolveReference(ptr_of_this_method);", tabs));
+            }
+            sb.AppendLine(string.Format("{0}{1} {2} = {3};", tabs, param.ParameterType.GetRealClassName(), param.Name, ILRuntimeBindingHelper.GetRetrieveValueCode(param.ParameterType)));
+            if (!param.ParameterType.IsByRef && !param.ParameterType.IsPrimitive)
+            {
+                sb.AppendLine(string.Format("{0}__intp.Free(ptr_of_this_method);", tabs));
+            }
+        }
+
+        sb.Append(string.Format(@"
+            var result_of_this_method = new {0}({1});
+", method.DeclearingType.TypeForCLR.GetRealClassName(), ILRuntimeBindingHelper.GetParamsCode(method.ConstructorInfo.GetParameters())));
+
+        if (method.DeclearingType.TypeForCLR.IsValueType)
+        {
+            sb.Append(@"
+            if(!isNewObj)
+            {
+                __ret--;
+                WriteBackInstance(__domain, __ret, __mStack, ref result_of_this_method);
+                return __ret;
+            }
+");
+        }
+
+        ILRuntimeBindingHelper.GetRefOutCode(parameters, sb);
+
+        sb.Append(@"
+            return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
+        }
+");
+
+        var registerCode = string.Format(@"
+            args = new Type[]{{{0}}};
+            method = type.GetConstructor(flag, null, args, null);
+            domain.RegisterCLRMethodRedirection(method, {1});
+", ILRuntimeBindingHelper.GetParamTypeTypesCode(method.ConstructorInfo.GetParameters()), methodName);
+
+        return registerCode;
+    }
+
+    private static bool ShouldSkipMethod(CLRMethod method)
+    {
+        if (method.IsGenericInstance)
         {
             return true;
         }
@@ -343,14 +434,14 @@ namespace ILRuntime.Binding.Generated
                 var name = clrType.FullName.Split('`')[0];
                 paramSB.Length = 0;
                 genericParamSB.Length = 0;
-                paramSB.Append(ILRuntimeBindingHelper.GetParamTypesStr(invokeMethod.MethodInfo.GetParameters(),
+                paramSB.Append(ILRuntimeBindingHelper.GetParamTypesCode(invokeMethod.MethodInfo.GetParameters(),
                     invokeMethod.ReturnType.TypeForCLR));
                 if (clrType.IsGenericInstance)
                 {
                     var genericFirst = true;
                     genericParamSB.Append("<");
                     genericParamSB.Append(
-                        ILRuntimeBindingHelper.GetGenericParamTypesStr(clrType.TypeForCLR.GetGenericArguments()));
+                        ILRuntimeBindingHelper.GetGenericParamTypesCode(clrType.TypeForCLR.GetGenericArguments()));
                     genericParamSB.Append(">");
                 }
 
@@ -362,7 +453,7 @@ namespace ILRuntime.Binding.Generated
                     {1}((System.{2}<{3}>)action)({4});
                 }});
             }});
-", name, returnVoid ? "" : "return ", returnVoid ? "Action" : "Func", paramSB, ILRuntimeBindingHelper.GetParamsStr(invokeMethod.MethodInfo.GetParameters()), genericParamSB));
+", name, returnVoid ? "" : "return ", returnVoid ? "Action" : "Func", paramSB, ILRuntimeBindingHelper.GetParamsCode(invokeMethod.MethodInfo.GetParameters()), genericParamSB));
             }
         }
     }
@@ -388,7 +479,7 @@ namespace ILRuntime.Binding.Generated
             dm.RegisterMethodDelegate<"
                 : @"
             dm.RegisterFunctionDelegate<");
-            sb.Append(ILRuntimeBindingHelper.GetParamTypesStr(clrMethod.MethodInfo.GetParameters(), clrMethod.ReturnType.TypeForCLR));
+            sb.Append(ILRuntimeBindingHelper.GetParamTypesCode(clrMethod.MethodInfo.GetParameters(), clrMethod.ReturnType.TypeForCLR));
             sb.Append(@">();");
         }
     }

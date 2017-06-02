@@ -44,7 +44,7 @@ namespace HotFix_Project
             HelloWorld.GenericMethod<InstanceClass>();
             HelloWorld.GenericMethod<HelloWorld>();
             UnityEngine.Debug.Log(HelloWorld.Property);
-            UnityEngine.Debug.Log(HelloWorld.TestEnum.Test);
+            UnityEngine.Debug.Log(HelloWorld.TestEnum.Test.GetType());
 
             var testAction = new Action<int, float, long>((i, f, arg3) => { });
         }
