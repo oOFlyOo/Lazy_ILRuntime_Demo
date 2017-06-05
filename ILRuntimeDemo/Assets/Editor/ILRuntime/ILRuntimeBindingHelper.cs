@@ -310,7 +310,7 @@ public static class ILRuntimeBindingHelper
                 StringBuilderAppend(", ");
             }
 
-            StringBuilderAppend(string.Format("typeof({0})", param.ParameterType.GetRealClassName()));
+            StringBuilderAppend(string.Format("typeof({0}){1}", param.ParameterType.GetRealClassName(), param.ParameterType.IsByRef ? ".MakeByRefType()" : ""));
         }
 
         if (returnType != null && returnType != typeof (void))
@@ -354,6 +354,20 @@ public static class ILRuntimeBindingHelper
         return realClsName;
     }
 
+    public static bool IsProperty(this MethodInfo method)
+    {
+        if (method.IsSpecialName)
+        {
+            var t = method.Name.Split('_');
+            if (t[0] == "set" || t[0] == "get")
+            {
+                return method.DeclaringType.GetProperty(t[1]) != null;
+            }
+        }
+
+        return false;
+    }
+
     public static string GetMethodName(CLRMethod method)
     {
         StringBuilderAppend(method.Name);
@@ -371,6 +385,28 @@ public static class ILRuntimeBindingHelper
         {
             return StringBuilderValue();
         }
+    }
+
+    public static string GetConstructorGenerateCode(CLRMethod method)
+    {
+        var registerCode = string.Format(@"
+            args = new Type[]{{{0}}};
+            method = type.GetConstructor(flag, null, args, null);
+            domain.RegisterCLRMethodRedirection(method, {1});
+", GetParamTypeTypesCode(method.ConstructorInfo.GetParameters()), GetMethodName(method));
+
+        return registerCode;
+    }
+
+    public static string GetMethodGenerateCode(CLRMethod method)
+    {
+        var registerCode = string.Format(@"
+            args = new Type[]{{{0}}};
+            method = type.GetMethod(""{2}"", flag, null, args, null);
+            domain.RegisterCLRMethodRedirection(method, {1});
+", GetParamTypeTypesCode(method.MethodInfo.GetParameters()), GetMethodName(method), method.Name);
+
+        return registerCode;
     }
 
     public static void GetInstanceCode(Type type, StringBuilder sb)
@@ -429,6 +465,91 @@ public static class ILRuntimeBindingHelper
             return instance_of_this_method;
         }}
 ", type.GetRealClassName(), GetRetrieveValueCode(type)));
+    }
+
+    public static void GetWriteBackInstanceCode(Type type, StringBuilder sb)
+    {
+        if (!type.IsValueType || type.IsPrimitive || type.IsAbstract)
+        {
+            return;
+        }
+
+        sb.AppendLine(string.Format(@"
+        private static void WriteBackInstance(ILRuntime.Runtime.Enviorment.AppDomain __domain, StackObject* ptr_of_this_method, List<object> __mStack, ref {0} instance_of_this_method)
+        {{
+            ptr_of_this_method = ILIntepreter.GetObjectAndResolveReference(ptr_of_this_method);
+            switch(ptr_of_this_method->ObjectType)
+            {{
+                case ObjectTypes.Object:
+                    {{
+                        __mStack[ptr_of_this_method->Value] = instance_of_this_method;
+                        break;
+                    }}
+                case ObjectTypes.FieldReference:
+                    {{
+                        var ___obj = __mStack[ptr_of_this_method->Value];
+                        if(___obj is ILTypeInstance)
+                        {{
+                            ((ILTypeInstance)___obj)[ptr_of_this_method->ValueLow] = instance_of_this_method;
+                        }}
+                        else
+                        {{
+                            var t = __domain.GetType(___obj.GetType()) as CLRType;
+                            t.GetField(ptr_of_this_method->ValueLow).SetValue(___obj, instance_of_this_method);
+                        }}
+                        break;
+                    }}
+                case ObjectTypes.StaticFieldReference:
+                    {{
+                        var t = __domain.GetType(ptr_of_this_method->Value);
+                        if(t is ILType)
+                        {{
+                            ((ILType)t).StaticInstance[ptr_of_this_method->ValueLow] = instance_of_this_method);
+                        }}
+                        else
+                        {{
+                            ((CLRType)t).GetField(ptr_of_this_method->ValueLow).SetValue(null, instance_of_this_method);
+                        }}
+                        break;
+                    }}
+                 case ObjectTypes.ArrayReference:
+                    {{
+                        var instance_of_arrayReference = __mStack[ptr_of_this_method->Value] as {0}[];
+                        instance_of_arrayReference[ptr_of_this_method->ValueLow] = instance_of_this_method;
+                        break;
+                    }}
+            }}
+        }}
+", type.GetRealClassName()));
+    }
+
+    public static void GetMethodHeader(string methodName, int paramCount, StringBuilder sb)
+    {
+        sb.Append(string.Format(@"
+        private static StackObject* {0}(ILIntepreter __intp, StackObject* __esp, List<object> __mStack, CLRMethod __method, bool isNewObj)
+        {{
+            ILRuntime.Runtime.Enviorment.AppDomain __domain = __intp.AppDomain;
+            StackObject* ptr_of_this_method;
+            StackObject* __ret = ILIntepreter.Minus(__esp, {1});
+", methodName, paramCount));
+    }
+
+    public static void GetMethodParameters(ParameterInfo[] parameters, string tabs, StringBuilder sb)
+    {
+        for (int i = parameters.Length - 1; i >= 0; i--)
+        {
+            var param = parameters[i];
+            sb.AppendLine(string.Format(tabs + @"ptr_of_this_method = ILIntepreter.Minus(__esp, {0});", parameters.Length - i));
+            if (param.ParameterType.IsByRef)
+            {
+                sb.AppendLine(tabs + "ptr_of_this_method = ILIntepreter.GetObjectAndResolveReference(ptr_of_this_method);");
+            }
+            sb.AppendLine(string.Format(tabs + "var {0} = {1};", param.Name, ILRuntimeBindingHelper.GetRetrieveValueCode(param.ParameterType)));
+            if (!param.ParameterType.IsByRef && !param.ParameterType.IsPrimitive)
+            {
+                sb.AppendLine(tabs + "__intp.Free(ptr_of_this_method);");
+            }
+        }
     }
 
     public static void GetRefOutCode(ParameterInfo[] parameters, StringBuilder sb)
@@ -609,9 +730,15 @@ public static class ILRuntimeBindingHelper
         return sb.ToString();
     }
 
-    public static void GetReturnValueCode(Type type, StringBuilder sb)
+    public static string GetReturnValueCode(CLRMethod method)
     {
-        if (type.IsPrimitive)
+        var type = method.ReturnType.TypeForCLR;
+        var sb = new StringBuilder();
+        if (type == typeof (void))
+        {
+            sb.AppendLine("            return __ret;");
+        }
+        else if (type.IsPrimitive)
         {
             if (type == typeof(int))
             {
@@ -675,12 +802,11 @@ public static class ILRuntimeBindingHelper
             }
             else
                 throw new NotImplementedException();
-            sb.AppendLine("            return __ret + 1;");
-
+            sb.Append("            return __ret + 1;");
         }
         else
         {
-            if (!type.IsSealed && type != typeof(ILRuntime.Runtime.Intepreter.ILTypeInstance))
+            if (!method.IsConstructor && !type.IsSealed && type != typeof(ILRuntime.Runtime.Intepreter.ILTypeInstance))
             {
                 sb.AppendLine(@"            object obj_result_of_this_method = result_of_this_method;
             if(obj_result_of_this_method is CrossBindingAdaptorType)
@@ -688,8 +814,10 @@ public static class ILRuntimeBindingHelper
                 return ILIntepreter.PushObject(__ret, __mStack, ((CrossBindingAdaptorType)obj_result_of_this_method).ILInstance);
             }");
             }
-            sb.AppendLine("            return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);");
+            sb.Append("            return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);");
         }
+
+        return sb.ToString();
     }
 
     public static string GetRetrieveValueCode(Type type)

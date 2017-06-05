@@ -1,13 +1,15 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using ILRuntime.CLR.TypeSystem;
 using ILRuntime.CLR.Method;
 using ILRuntime.CLR.Utils;
 using ILRuntime.Runtime.Intepreter;
 using ILRuntime.Runtime.Stack;
-using ILRuntime.Runtime.Enviorment;
+using AppDomain = ILRuntime.Runtime.Enviorment.AppDomain;
 
 public class CLRBindingTestClass
 {
@@ -30,7 +32,7 @@ public class CLRBindingDemo : MonoBehaviour
 
     IEnumerator LoadHotFixAssembly()
     {
-        ILRuntimeManager.Create();
+        ILRuntimeManager.Create(false);
         appdomain = ILRuntimeManager.Instance.Domain;
 
         yield return null;
@@ -47,6 +49,18 @@ public class CLRBindingDemo : MonoBehaviour
     //这个仅为演示demo用，平时不要这么调用
     void RetryCLRRedirection()
     {
+        var type0 = typeof (ILRuntimeManager);
+        if (type0 != null)
+        {
+            var method0 = type0.GetMethod("InitializeBinding", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (method0 != null)
+            {
+                Debug.Log("InitializeILRuntime");
+
+                method0.Invoke(ILRuntimeManager.Instance, new object[0]);
+            }
+        }
+
         var type = appdomain.GetType(typeof(CLRBindingTestClass));
         CLRMethod method = type.GetMethod("DoSomeTest", 2) as CLRMethod;
         method.RetryCLRRedirection();

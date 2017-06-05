@@ -65,7 +65,7 @@ public class Inheritance : MonoBehaviour
         Debug.Log("Oops, 报错了，因为跨域继承必须要注册适配器。 如果是热更DLL里面继承热更里面的类型，不需要任何注册。");
 
         Debug.Log("所以现在我们来注册适配器");
-//        appdomain.RegisterCrossBindingAdaptor(new InheritanceAdapter());
+        appdomain.RegisterCrossBindingAdaptor(new InheritanceAdapter());
         Debug.Log("现在再来尝试创建一个实例");
         obj = appdomain.Instantiate<TestClassBase>("HotFix_Project.TestInheritance");
         Debug.Log("现在来调用成员方法");

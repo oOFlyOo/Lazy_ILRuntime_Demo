@@ -18,7 +18,7 @@ public class ILRuntimeBindingGenerator
 {
     public static void Generate()
     {
-        var domain = ILRuntimeManager.Create(false).Domain;
+        var domain = ILRuntimeManager.Create().Domain;
 
         var moduleDef = ILRuntimeBindingHelper.ReadModule(ILRuntimePaths.AssemblyCSharpPath);
         GenerateFramworkMessage(moduleDef);
@@ -262,6 +262,11 @@ namespace ILRuntime.Binding.Generated
             sb.Append(GenerateConstructor(constructor, methodSb));
         }
 
+        foreach (var clrMethod in typeInfo.Methods)
+        {
+            sb.Append(GenerateMethod(clrMethod, methodSb));
+        }
+
         sb.Append(string.Format(@"
         }}
 {0}
@@ -290,6 +295,9 @@ namespace ILRuntime.Binding.Generated
         {
             return;
         }
+
+        ILRuntimeBindingHelper.GetInstanceCode(type, sb);
+        ILRuntimeBindingHelper.GetWriteBackInstanceCode(type, sb);
     }
 
     private static string GenerateConstructor(CLRMethod method, StringBuilder sb)
@@ -301,30 +309,12 @@ namespace ILRuntime.Binding.Generated
 
         var methodName = ILRuntimeBindingHelper.GetMethodName(method);
 
-        sb.Append(string.Format(@"
-        private static StackObject* {0}(ILIntepreter __intp, StackObject* __esp, List<object> __mStack, CLRMethod __method, bool isNewObj)
-        {{
-            ILRuntime.Runtime.Enviorment.AppDomain __domain = __intp.AppDomain;
-            StackObject* ptr_of_this_method;
-            StackObject* __ret = ILIntepreter.Minus(__esp, {1});
-", methodName, method.ParameterCount));
-
         var parameters = method.ConstructorInfo.GetParameters();
+
+        ILRuntimeBindingHelper.GetMethodHeader(methodName, parameters.Length, sb);
+
         var tabs = "\t\t\t";
-        for (int i = parameters.Length - 1; i >= 0; i--)
-        {
-            var param = parameters[i];
-            sb.AppendLine(string.Format(@"{0}ptr_of_this_method = ILIntepreter.Minus(__esp, {1});", tabs, parameters.Length - i));
-            if (param.ParameterType.IsByRef)
-            {
-                sb.AppendLine(string.Format("{0}ptr_of_this_method = ILIntepreter.GetObjectAndResolveReference(ptr_of_this_method);", tabs));
-            }
-            sb.AppendLine(string.Format("{0}{1} {2} = {3};", tabs, param.ParameterType.GetRealClassName(), param.Name, ILRuntimeBindingHelper.GetRetrieveValueCode(param.ParameterType)));
-            if (!param.ParameterType.IsByRef && !param.ParameterType.IsPrimitive)
-            {
-                sb.AppendLine(string.Format("{0}__intp.Free(ptr_of_this_method);", tabs));
-            }
-        }
+        ILRuntimeBindingHelper.GetMethodParameters(parameters, tabs, sb);
 
         sb.Append(string.Format(@"
             var result_of_this_method = new {0}({1});
@@ -344,25 +334,267 @@ namespace ILRuntime.Binding.Generated
 
         ILRuntimeBindingHelper.GetRefOutCode(parameters, sb);
 
-        sb.Append(@"
-            return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
+        sb.Append(string.Format(@"{0}
+        }}
+", ILRuntimeBindingHelper.GetReturnValueCode(method)));
+
+        return ILRuntimeBindingHelper.GetConstructorGenerateCode(method);
+    }
+
+    private static string GenerateMethod(CLRMethod method, StringBuilder sb)
+    {
+        if (ShouldSkipMethod(method))
+        {
+            return null;
         }
-");
 
-        var registerCode = string.Format(@"
-            args = new Type[]{{{0}}};
-            method = type.GetConstructor(flag, null, args, null);
-            domain.RegisterCLRMethodRedirection(method, {1});
-", ILRuntimeBindingHelper.GetParamTypeTypesCode(method.ConstructorInfo.GetParameters()), methodName);
+        var type = method.DeclearingType.TypeForCLR;
+        var typeClsName = type.GetRealClassName();
+        var methodName = ILRuntimeBindingHelper.GetMethodName(method);
 
-        return registerCode;
+        var methodInfo = method.MethodInfo;
+        var isProperty = methodInfo.IsProperty();
+        var parameters = methodInfo.GetParameters();
+
+        ILRuntimeBindingHelper.GetMethodHeader(methodName, methodInfo.IsStatic ? parameters.Length : parameters.Length + 1, sb);
+
+        var tabs = "\t\t\t";
+        ILRuntimeBindingHelper.GetMethodParameters(parameters, tabs, sb);
+
+        if (!methodInfo.IsStatic)
+        {
+            sb.Append(string.Format(tabs + @"ptr_of_this_method = ILIntepreter.Minus(__esp, {0});", methodInfo.IsStatic ? parameters.Length : parameters.Length + 1));
+            if (type.IsPrimitive)
+            {
+                sb.AppendLine(string.Format(tabs + "{0} instance_of_this_method = GetInstance(__domain, ptr_of_this_method, __mStack);", typeClsName));
+            }
+            else
+            {
+                if (type.IsValueType)
+                {
+                    sb.AppendLine(tabs + "ptr_of_this_method = ILIntepreter.GetObjectAndResolveReference(ptr_of_this_method);");
+                }
+                sb.AppendLine(string.Format(tabs + "{0} instance_of_this_method;", typeClsName));
+                sb.AppendLine(string.Format(tabs + "instance_of_this_method = {0};", ILRuntimeBindingHelper.GetRetrieveValueCode(type)));
+                if (!type.IsValueType)
+                {
+                    sb.AppendLine(tabs + "__intp.Free(ptr_of_this_method);");
+                }
+            }
+        }
+
+        sb.AppendLine();
+        if (methodInfo.ReturnType != typeof(void))
+        {
+            sb.Append(tabs + "var result_of_this_method = ");
+        }
+        else
+        {
+            sb.Append(tabs);
+        }
+
+        if (methodInfo.IsStatic)
+        {
+            if (isProperty)
+            {
+                var t = method.Name.Split('_');
+                string propType = t[0];
+
+                if (propType == "get")
+                {
+                    bool isIndexer = parameters.Length > 0;
+                    if (isIndexer)
+                    {
+                        sb.AppendLine(string.Format("{1}[{0}];", parameters[0].Name, typeClsName));
+                    }
+                    else
+                    {
+                        sb.AppendLine(string.Format("{1}.{0};", t[1], typeClsName));
+                    }
+                }
+                else if (propType == "set")
+                {
+                    bool isIndexer = parameters.Length > 1;
+                    if (isIndexer)
+                    {
+                        sb.AppendLine(string.Format("{2}[{0}] = {1};", parameters[0].Name, parameters[1].Name, typeClsName));
+                    }
+                    else
+                    {
+                        sb.AppendLine(string.Format("{2}.{0} = {1};", t[1], parameters[0].Name, typeClsName));
+                    }
+                }
+                else if (propType == "op")
+                {
+                    switch (t[1])
+                    {
+                        case "Equality":
+                        {
+                            sb.AppendLine(string.Format("{0} == {1};", parameters[0].Name, parameters[1].Name));
+                            break;
+                        }
+                        case "Inequality":
+                        {
+                            sb.AppendLine(string.Format("{0} != {1};", parameters[0].Name, parameters[1].Name));
+                            break;
+                        }
+                        case "Addition":
+                        {
+                            sb.AppendLine(string.Format("{0} + {1};", parameters[0].Name, parameters[1].Name));
+                            break;
+                        }
+                        case "Subtraction":
+                        {
+                            sb.AppendLine(string.Format("{0} - {1};", parameters[0].Name, parameters[1].Name));
+                            break;
+                        }
+                        case "Multiply":
+                        {
+                            sb.AppendLine(string.Format("{0} * {1};", parameters[0].Name, parameters[1].Name));
+                            break;
+                        }
+                        case "Division":
+                        {
+                            sb.AppendLine(string.Format("{0} / {1};", parameters[0].Name, parameters[1].Name));
+                            break;
+                        }
+                        case "GreaterThan":
+                        {
+                            sb.AppendLine(string.Format("{0} > {1};", parameters[0].Name, parameters[1].Name));
+                            break;
+                        }
+                        case "GreaterThanOrEqual":
+                        {
+                            sb.AppendLine(string.Format("{0} >= {1};", parameters[0].Name, parameters[1].Name));
+                            break;
+                        }
+                        case "LessThan":
+                        {
+                            sb.AppendLine(string.Format("{0} < {1};", parameters[0].Name, parameters[1].Name));
+                            break;
+                        }
+                        case "LessThanOrEqual":
+                        {
+                            sb.AppendLine(string.Format("{0} <= {1};", parameters[0].Name, parameters[1].Name));
+                            break;
+                        }
+                        case "UnaryNegation":
+                        {
+                            sb.AppendLine(string.Format("-{0};", parameters[0].Name));
+                            break;
+                        }
+                        case "Implicit":
+                        case "Explicit":
+                            {
+                                sb.AppendLine(string.Format("({1}){0};", parameters[0].Name, methodInfo.ReturnType.GetRealClassName()));
+                                break;
+                            }
+                        default:
+                            throw new NotImplementedException(methodInfo.Name);
+                    }
+                }
+                else
+                    throw new NotImplementedException();
+            }
+            else
+            {
+                sb.Append(string.Format("{0}.{1}(", typeClsName, methodInfo.Name));
+                sb.Append(ILRuntimeBindingHelper.GetParamsCode(parameters));
+                sb.AppendLine(");");
+            }
+        }
+        else
+        {
+            if (isProperty)
+            {
+                string[] t = methodInfo.Name.Split('_');
+                string propType = t[0];
+
+                if (propType == "get")
+                {
+                    bool isIndexer = parameters.Length > 0;
+                    if (isIndexer)
+                    {
+                        sb.AppendLine(string.Format("instance_of_this_method[{0}];", parameters[0].Name));
+                    }
+                    else
+                        sb.AppendLine(string.Format("instance_of_this_method.{0};", t[1]));
+                }
+                else if (propType == "set")
+                {
+                    bool isIndexer = parameters.Length > 1;
+                    if (isIndexer)
+                    {
+                        sb.AppendLine(string.Format("instance_of_this_method[{0}] = {1};", parameters[0].Name, parameters[1].Name));
+                    }
+                    else
+                        sb.AppendLine(string.Format("instance_of_this_method.{0} = {1};", t[1], parameters[0].Name));
+                }
+                else
+                    throw new NotImplementedException();
+            }
+            else
+            {
+                sb.Append(string.Format("instance_of_this_method.{0}(", methodInfo.Name));
+                sb.Append(ILRuntimeBindingHelper.GetParamsCode(parameters));
+                sb.AppendLine(");");
+            }
+        }
+        sb.AppendLine();
+
+
+        if (!method.IsStatic && type.IsValueType && !type.IsPrimitive)//need to write back value type instance
+        {
+            sb.AppendLine(tabs + "WriteBackInstance(__domain, ptr_of_this_method, __mStack, ref instance_of_this_method);");
+            sb.AppendLine();
+        }
+        
+        ILRuntimeBindingHelper.GetRefOutCode(parameters, sb);
+
+        sb.Append(string.Format(@"{0}
+        }}
+", ILRuntimeBindingHelper.GetReturnValueCode(method)));
+
+        return ILRuntimeBindingHelper.GetMethodGenerateCode(method);
     }
 
     private static bool ShouldSkipMethod(CLRMethod method)
     {
-        if (method.IsGenericInstance)
+        if (method.Redirection != null)
         {
             return true;
+        }
+
+        MethodBase methodInfo = null;
+        if (method.IsConstructor)
+        {
+            methodInfo = method.ConstructorInfo;
+        }
+        else
+        {
+            methodInfo = method.MethodInfo;
+        }
+
+        if (methodInfo.IsGenericMethod)
+        {
+            return true;
+        }
+
+        if (methodInfo.IsSpecialName)
+        {
+            var t = methodInfo.Name.Split('_');
+            if (t[0] == "add" || t[0] == "remvoe")
+            {
+                return true;
+            }
+        }
+
+        foreach (var parameterInfo in methodInfo.GetParameters())
+        {
+            if (parameterInfo.ParameterType.IsPointer)
+            {
+                return true;
+            }
         }
 
         return false;
