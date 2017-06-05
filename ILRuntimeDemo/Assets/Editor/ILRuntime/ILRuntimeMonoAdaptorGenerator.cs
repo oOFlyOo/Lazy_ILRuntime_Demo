@@ -96,7 +96,7 @@ using UnityEngine;
 
 namespace ILRuntime.Adaptor.MonoMessage.Generated
 {{
-    public class MonoMessage_{0}: MonoMessageBase
+    internal class MonoMessage_{0}: MonoMessageBase
     {{
         protected override string InfoName
         {{

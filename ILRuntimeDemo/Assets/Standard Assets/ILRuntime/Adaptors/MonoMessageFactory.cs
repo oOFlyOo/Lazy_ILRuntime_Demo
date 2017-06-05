@@ -6,7 +6,7 @@ using ILRuntime.CLR.TypeSystem;
 using ILRuntime.Runtime.Adaptor;
 using UnityEngine;
 
-public static class MonoMessageFactory
+internal static class MonoMessageFactory
 {
     private static readonly Dictionary<string, Type> _monoMethodTypeDict;
 

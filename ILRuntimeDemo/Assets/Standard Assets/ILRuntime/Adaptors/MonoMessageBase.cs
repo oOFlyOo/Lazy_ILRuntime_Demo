@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using ILRuntime.Runtime.Adaptor;
 using UnityEngine;
 
-public abstract class MonoMessageBase: MonoBehaviour
+internal abstract class MonoMessageBase: MonoBehaviour
 {
     private HashSet<MonoBehaviourAdapter.MonoAdaptor> _monoAdaptors = new HashSet<MonoBehaviourAdapter.MonoAdaptor>();
 
