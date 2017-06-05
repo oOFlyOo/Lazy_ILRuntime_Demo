@@ -523,6 +523,28 @@ public static class ILRuntimeBindingHelper
 ", type.GetRealClassName()));
     }
 
+    public static bool CheckAndChangeRedirect(string className, string methodName, StringBuilder sb)
+    {
+        var type = EditorHelper.GetType("ILRuntime.Binding.Redirect." + className);
+        if (type != null)
+        {
+            var method = type.GetMethod(methodName);
+            if (method != null)
+            {
+                sb.Append(string.Format(@"
+        private static StackObject* {0}(ILIntepreter __intp, StackObject* __esp, List<object> __mStack, CLRMethod __method, bool isNewObj)
+        {{
+            return ILRuntime.Binding.Redirect.{1}.{0}(__intp, __esp, __mStack, __method, isNewObj);
+        }}
+", methodName, className));
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static void GetMethodHeader(string methodName, int paramCount, StringBuilder sb)
     {
         sb.Append(string.Format(@"

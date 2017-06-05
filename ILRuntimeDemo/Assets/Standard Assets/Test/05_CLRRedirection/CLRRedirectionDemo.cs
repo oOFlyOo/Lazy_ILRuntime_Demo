@@ -55,10 +55,10 @@ public class CLRRedirectionDemo : MonoBehaviour
 
         Debug.Log("接下来进行CLR重定向注册");
 
-        var mi = typeof(Debug).GetMethod("Log", new System.Type[] { typeof(object) });
-        appdomain.RegisterCLRMethodRedirection(mi, Log_11);
-        //这个只是为了演示加的，平时不要这么用，直接在InitializeILRuntime方法里面写CLR重定向注册就行了
-        RetryCLRRedirection();
+//        var mi = typeof(Debug).GetMethod("Log", new System.Type[] { typeof(object) });
+//        appdomain.RegisterCLRMethodRedirection(mi, Log_11);
+//        //这个只是为了演示加的，平时不要这么用，直接在InitializeILRuntime方法里面写CLR重定向注册就行了
+//        RetryCLRRedirection();
         Debug.Log("我们再来调用一次刚刚的方法，注意看下一行日志的变化");
         appdomain.Invoke("HotFix_Project.TestCLRRedirection", "RunTest", null, null);
     }

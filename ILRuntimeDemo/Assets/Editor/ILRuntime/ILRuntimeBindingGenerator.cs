@@ -167,7 +167,7 @@ using ILRuntime.Runtime.Enviorment;
 
 namespace ILRuntime.Binding.Generated
 {
-    internal class CLRBindings
+    internal static class CLRBindings
     {
         /// <summary>
         /// Initialize the CLR binding, please invoke this AFTER CLR Redirection registration
@@ -245,7 +245,7 @@ using ILRuntime.CLR.Utils;
 
 namespace ILRuntime.Binding.Generated
 {{
-    unsafe class {0}
+    unsafe internal static class {0}
     {{
         public static void Register(ILRuntime.Runtime.Enviorment.AppDomain domain)
         {{
@@ -259,12 +259,12 @@ namespace ILRuntime.Binding.Generated
 
         foreach (var constructor in typeInfo.Constructors)
         {
-            sb.Append(GenerateConstructor(constructor, methodSb));
+            sb.Append(GenerateConstructor(clsName, constructor, methodSb));
         }
 
         foreach (var clrMethod in typeInfo.Methods)
         {
-            sb.Append(GenerateMethod(clrMethod, methodSb));
+            sb.Append(GenerateMethod(clsName, clrMethod, methodSb));
         }
 
         sb.Append(string.Format(@"
@@ -300,7 +300,7 @@ namespace ILRuntime.Binding.Generated
         ILRuntimeBindingHelper.GetWriteBackInstanceCode(type, sb);
     }
 
-    private static string GenerateConstructor(CLRMethod method, StringBuilder sb)
+    private static string GenerateConstructor(string clsName, CLRMethod method, StringBuilder sb)
     {
         if (ShouldSkipMethod(method))
         {
@@ -308,6 +308,11 @@ namespace ILRuntime.Binding.Generated
         }
 
         var methodName = ILRuntimeBindingHelper.GetMethodName(method);
+
+        if (ILRuntimeBindingHelper.CheckAndChangeRedirect(clsName, methodName, sb))
+        {
+            return ILRuntimeBindingHelper.GetConstructorGenerateCode(method);
+        }
 
         var parameters = method.ConstructorInfo.GetParameters();
 
@@ -341,7 +346,7 @@ namespace ILRuntime.Binding.Generated
         return ILRuntimeBindingHelper.GetConstructorGenerateCode(method);
     }
 
-    private static string GenerateMethod(CLRMethod method, StringBuilder sb)
+    private static string GenerateMethod(string clsName, CLRMethod method, StringBuilder sb)
     {
         if (ShouldSkipMethod(method))
         {
@@ -351,6 +356,11 @@ namespace ILRuntime.Binding.Generated
         var type = method.DeclearingType.TypeForCLR;
         var typeClsName = type.GetRealClassName();
         var methodName = ILRuntimeBindingHelper.GetMethodName(method);
+
+        if (ILRuntimeBindingHelper.CheckAndChangeRedirect(clsName, methodName, sb))
+        {
+            return ILRuntimeBindingHelper.GetMethodGenerateCode(method);
+        }
 
         var methodInfo = method.MethodInfo;
         var isProperty = methodInfo.IsProperty();

@@ -359,14 +359,15 @@ namespace ILRuntime.CLR.Method
 
         public override string ToString()
         {
+            string redirectStr = null;
             if (redirect != null)
             {
-                return string.Format("Redirect by {0} {1}", redirect.Method.DeclaringType, redirect.Method);
+                redirectStr = string.Format("\tRedirect by {0} {1}", redirect.Method.DeclaringType, redirect.Method);
             }
             if (def != null)
-                return def.ToString();
+                return def + redirectStr;
             else
-                return cDef.ToString();
+                return cDef + redirectStr;
         }
 
         public override int GetHashCode()
