@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ILRuntime.CLR.TypeSystem;
+using UnityEngine;
 
 public static class ILRMonoAdaptorHelper
 {
@@ -207,5 +208,10 @@ public static class ILRMonoAdaptorHelper
         }
 
         return MonoAdaptorType;
+    }
+
+    public static bool IsMonoAdaptor(this MonoBehaviour mono)
+    {
+        return MonoAdaptorType.IsAssignableFrom(mono.GetType());
     }
 }

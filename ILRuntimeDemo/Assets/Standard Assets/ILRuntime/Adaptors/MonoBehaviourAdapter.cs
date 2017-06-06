@@ -33,6 +33,7 @@ namespace ILRuntime.Runtime.Adaptor
         public class MonoAdaptor : MonoBehaviour, CrossBindingAdaptorType
         {
             private static Dictionary<ILType, Dictionary<string, ILMethod>> _cacheMonoMethods = new Dictionary<ILType, Dictionary<string, ILMethod>>();
+
             private static void InitMonoMethods(ILType ilType)
             {
                 if (!_cacheMonoMethods.ContainsKey(ilType))

@@ -15,7 +15,27 @@ namespace ILRuntime.Binding.Redirect
 {
     unsafe internal class UnityEngine_Debug_Binding
     {
-        public static StackObject* Log_Object(ILIntepreter __intp, StackObject* __esp, List<object> __mStack, CLRMethod __method, bool isNewObj)
+        public static void Register(ILRuntime.Runtime.Enviorment.AppDomain domain)
+        {
+            var flag = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
+            MethodBase method;
+            Type[] args;
+            Type type = typeof(UnityEngine.Debug);
+
+            args = new Type[] { typeof(System.Object) };
+            method = type.GetMethod("Log", flag, null, args, null);
+            domain.RegisterCLRMethodRedirection(method, Log_Object);
+
+            args = new Type[] { typeof(System.Object) };
+            method = type.GetMethod("LogError", flag, null, args, null);
+            domain.RegisterCLRMethodRedirection(method, LogError_Object);
+
+            args = new Type[] { typeof(System.Object) };
+            method = type.GetMethod("LogWarning", flag, null, args, null);
+            domain.RegisterCLRMethodRedirection(method, LogWarning_Object);
+        }
+
+        private static StackObject* Log_Object(ILIntepreter __intp, StackObject* __esp, List<object> __mStack, CLRMethod __method, bool isNewObj)
         {
             ILRuntime.Runtime.Enviorment.AppDomain __domain = __intp.AppDomain;
             StackObject* ptr_of_this_method;
@@ -32,7 +52,7 @@ namespace ILRuntime.Binding.Redirect
             return __ret;
         }
 
-        public static StackObject* LogError_Object(ILIntepreter __intp, StackObject* __esp, List<object> __mStack, CLRMethod __method, bool isNewObj)
+        private static StackObject* LogError_Object(ILIntepreter __intp, StackObject* __esp, List<object> __mStack, CLRMethod __method, bool isNewObj)
         {
             ILRuntime.Runtime.Enviorment.AppDomain __domain = __intp.AppDomain;
             StackObject* ptr_of_this_method;
@@ -49,7 +69,7 @@ namespace ILRuntime.Binding.Redirect
             return __ret;
         }
 
-        public static StackObject* LogWarning_Object(ILIntepreter __intp, StackObject* __esp, List<object> __mStack, CLRMethod __method, bool isNewObj)
+        private static StackObject* LogWarning_Object(ILIntepreter __intp, StackObject* __esp, List<object> __mStack, CLRMethod __method, bool isNewObj)
         {
             ILRuntime.Runtime.Enviorment.AppDomain __domain = __intp.AppDomain;
             StackObject* ptr_of_this_method;

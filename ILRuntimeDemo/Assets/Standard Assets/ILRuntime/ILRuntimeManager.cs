@@ -60,6 +60,8 @@ public class ILRuntimeManager: Singleton<ILRuntimeManager>
 
     private void InitializeILRuntime(bool initBinding, bool initAdaptor)
     {
+        InitializeStaticBinding();
+
         if (Application.isPlaying && initBinding)
         {
             InitializeBinding();
@@ -69,6 +71,11 @@ public class ILRuntimeManager: Singleton<ILRuntimeManager>
         {
             InitializeAdaptor();
         }
+    }
+
+    private void InitializeStaticBinding()
+    {
+        ILRuntime.Binding.Redirect.CLRBindings.Initialize(_appDomain);
     }
 
     private void InitializeBinding()

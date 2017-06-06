@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -15,6 +16,9 @@ namespace HotFix_Project
         void Start()
         {
             Debug.Log("!! SomeMonoBehaviour.Start");
+
+            Invoke("TestInvoke", 3);
+            StartCoroutine(TestCoroutine());
         }
 
         void Update()
@@ -30,6 +34,17 @@ namespace HotFix_Project
         {
             Debug.Log("SomeMonoBehaviour");
         }
+
+        private void TestInvoke()
+        {
+            Debug.LogError("TestInvoke");
+        }
+
+        private IEnumerator TestCoroutine()
+        {
+            yield return new WaitForSeconds(3);
+            Debug.LogError("TestCoroutine");
+        }
     }
 
     class SomeMonoBehaviour2 : MonoBehaviour
@@ -39,6 +54,16 @@ namespace HotFix_Project
         public void Test2()
         {
             Debug.Log("!!! SomeMonoBehaviour2.Test2");
+        }
+
+        void Start()
+        {
+            InvokeRepeating("TestInvokeRepeating", 3, 3);
+        }
+
+        private void TestInvokeRepeating()
+        {
+            Debug.LogError("TestInvokeRepeating");
         }
 
         private void OnEnable()
