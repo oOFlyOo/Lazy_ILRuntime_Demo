@@ -2,12 +2,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using ILRuntime.CLR.TypeSystem;
 using ILRuntime.Reflection;
 using ILRuntime.Runtime.Adaptor;
 using ILRuntime.Runtime.Intepreter;
 using UnityEngine;
+using AppDomain = ILRuntime.Runtime.Enviorment.AppDomain;
 
 public static class ILRMonoAdaptorHelper
 {
@@ -96,168 +96,190 @@ public static class ILRMonoAdaptorHelper
         return null;
     }
 
-    private static IList GetComponentsWithoutCheck(Component component, ILType type)
+    private static IList GetComponentsWithoutCheck(GameObject go, ILType type)
     {
         var adaptorType = GetMonoAdaptorType(type);
         if (adaptorType == MonoAdaptorType)
         {
-            component.GetComponents(_tempMonoList);
+            go.GetComponents(_tempMonoList);
             return _tempMonoList;
         }
-        component.GetComponents(_tempMonoEnableList);
+        go.GetComponents(_tempMonoEnableList);
         return _tempMonoEnableList;
     }
 
-    private static ILTypeInstance PrivateGetComponent(Component component, ILType type)
+    private static ILTypeInstance PrivateGetComponent(GameObject go, ILType type)
     {
-        var list = GetComponentsWithoutCheck(component, type);
+        var list = GetComponentsWithoutCheck(go, type);
 
         return CheckComponentAndClearList(list, type);
     }
 
-    private static ILTypeInstance[] PrivateGetComponents(Component component, ILType type, List<ILTypeInstance> results = null)
+    private static ILTypeInstance[] PrivateGetComponents(GameObject go, ILType type, List<ILTypeInstance> results = null)
     {
-        var list = GetComponentsWithoutCheck(component, type);
+        var list = GetComponentsWithoutCheck(go, type);
 
         return CheckComponentsAndClearList(list, type, results);
     }
 
-    internal static object GetComponent(Component component, Type type)
+    internal static object GetComponent(GameObject go, Type type)
     {
         if (type is ILRuntimeType)
         {
-            return PrivateGetComponent(component, (type as ILRuntimeType).ILType);
+            return PrivateGetComponent(go, (type as ILRuntimeType).ILType);
         }
-        return component.GetComponent(type);
+        return go.GetComponent(type);
     }
 
-    internal static object GetComponent(Component component, IType type)
+    internal static object GetComponent(GameObject go, IType type)
     {
-        return GetComponent(component, type is ILType ? type.ReflectionType : type.TypeForCLR);
+        return GetComponent(go, type is ILType ? type.ReflectionType : type.TypeForCLR);
     }
 
-    internal static object GetComponents(Component component, Type type)
+    internal static object GetComponents(GameObject go, Type type)
     {
         if (type is ILRuntimeType)
         {
-            return PrivateGetComponents(component, (type as ILRuntimeType).ILType, null);
+            return PrivateGetComponents(go, (type as ILRuntimeType).ILType, null);
         }
-        return component.GetComponents(type);
+        return go.GetComponents(type);
     }
 
-    internal static object GetComponents(Component component, IType type)
+    internal static object GetComponents(GameObject go, IType type)
     {
-        return GetComponents(component, type is ILType ? type.ReflectionType : type.TypeForCLR);
+        return GetComponents(go, type is ILType ? type.ReflectionType : type.TypeForCLR);
     }
 
-    private static IList GetComponentsInChildrenWithoutCheck(Component component, ILType type, bool includeInactive)
+    private static IList GetComponentsInChildrenWithoutCheck(GameObject go, ILType type, bool includeInactive)
     {
         var adaptorType = GetMonoAdaptorType(type);
         if (adaptorType == MonoAdaptorType)
         {
-            component.GetComponentsInChildren(includeInactive, _tempMonoList);
+            go.GetComponentsInChildren(includeInactive, _tempMonoList);
             return _tempMonoList;
         }
-        component.GetComponentsInChildren(includeInactive, _tempMonoEnableList);
+        go.GetComponentsInChildren(includeInactive, _tempMonoEnableList);
         return _tempMonoEnableList;
     }
 
-    private static ILTypeInstance PrivateGetComponentInChildren(Component component, ILType type, bool includeInactive)
+    private static ILTypeInstance PrivateGetComponentInChildren(GameObject go, ILType type, bool includeInactive)
     {
-        var list = GetComponentsInChildrenWithoutCheck(component, type, includeInactive);
+        var list = GetComponentsInChildrenWithoutCheck(go, type, includeInactive);
 
         return CheckComponentAndClearList(list, type);
     }
 
-    private static ILTypeInstance[] PrivateGetComponentsInChildren(Component component, ILType type, bool includeInactive, List<ILTypeInstance> results = null)
+    private static ILTypeInstance[] PrivateGetComponentsInChildren(GameObject go, ILType type, bool includeInactive, List<ILTypeInstance> results = null)
     {
-        var list = GetComponentsInChildrenWithoutCheck(component, type, includeInactive);
+        var list = GetComponentsInChildrenWithoutCheck(go, type, includeInactive);
 
         return CheckComponentsAndClearList(list, type, results);
     }
 
-    internal static object GetComponentInChildren(Component component, Type type, bool includeInactive = false)
+    internal static object GetComponentInChildren(GameObject go, Type type, bool includeInactive = false)
     {
         if (type is ILRuntimeType)
         {
-            return PrivateGetComponentInChildren(component, (type as ILRuntimeType).ILType, includeInactive);
+            return PrivateGetComponentInChildren(go, (type as ILRuntimeType).ILType, includeInactive);
         }
-        return component.GetComponentInChildren(type, includeInactive);
+        return go.GetComponentInChildren(type, includeInactive);
     }
 
-    internal static object GetComponentInChildren(Component component, IType type, bool includeInactive = false)
+    internal static object GetComponentInChildren(GameObject go, IType type, bool includeInactive = false)
     {
-        return GetComponentInChildren(component, type is ILType ? type.ReflectionType : type.TypeForCLR, includeInactive);
+        return GetComponentInChildren(go, type is ILType ? type.ReflectionType : type.TypeForCLR, includeInactive);
     }
 
-    internal static object GetComponentsInChildren(Component component, Type type, bool includeInactive = false)
+    internal static object GetComponentsInChildren(GameObject go, Type type, bool includeInactive = false)
     {
         if (type is ILRuntimeType)
         {
-            return PrivateGetComponentsInChildren(component, (type as ILRuntimeType).ILType, includeInactive, null);
+            return PrivateGetComponentsInChildren(go, (type as ILRuntimeType).ILType, includeInactive, null);
         }
-        return component.GetComponentsInChildren(type, includeInactive);
+        return go.GetComponentsInChildren(type, includeInactive);
     }
 
-    internal static object GetComponentsInChildren(Component component, IType type, bool includeInactive = false)
+    internal static object GetComponentsInChildren(GameObject go, IType type, bool includeInactive = false)
     {
-        return GetComponentsInChildren(component, type is ILType ? type.ReflectionType : type.TypeForCLR, includeInactive);
+        return GetComponentsInChildren(go, type is ILType ? type.ReflectionType : type.TypeForCLR, includeInactive);
     }
 
-    private static IList GetComponentsInParentWithoutCheck(Component component, ILType type, bool includeInactive)
+    private static IList GetComponentsInParentWithoutCheck(GameObject go, ILType type, bool includeInactive)
     {
         var adaptorType = GetMonoAdaptorType(type);
         if (adaptorType == MonoAdaptorType)
         {
-            component.GetComponentsInParent(includeInactive, _tempMonoList);
+            go.GetComponentsInParent(includeInactive, _tempMonoList);
             return _tempMonoList;
         }
-        component.GetComponentsInParent(includeInactive, _tempMonoEnableList);
+        go.GetComponentsInParent(includeInactive, _tempMonoEnableList);
         return _tempMonoEnableList;
     }
 
-    private static ILTypeInstance PrivateGetComponentInParent(Component component, ILType type, bool includeInactive = false)
+    private static ILTypeInstance PrivateGetComponentInParent(GameObject go, ILType type, bool includeInactive = false)
     {
-        var list = GetComponentsInParentWithoutCheck(component, type, includeInactive);
+        var list = GetComponentsInParentWithoutCheck(go, type, includeInactive);
 
         return CheckComponentAndClearList(list, type);
     }
 
-    private static ILTypeInstance[] PrivateGetComponentsInParent(Component component, ILType type, bool includeInactive, List<ILTypeInstance> results = null)
+    private static ILTypeInstance[] PrivateGetComponentsInParent(GameObject go, ILType type, bool includeInactive, List<ILTypeInstance> results = null)
     {
-        var list = GetComponentsInParentWithoutCheck(component, type, includeInactive);
+        var list = GetComponentsInParentWithoutCheck(go, type, includeInactive);
 
         return CheckComponentsAndClearList(list, type, results);
     }
 
-    internal static object GetComponentInParent(Component component, Type type)
+    internal static object GetComponentInParent(GameObject go, Type type)
     {
         if (type is ILRuntimeType)
         {
-            return PrivateGetComponentInParent(component, (type as ILRuntimeType).ILType);
+            return PrivateGetComponentInParent(go, (type as ILRuntimeType).ILType);
         }
-        return component.GetComponentInParent(type);
+        return go.GetComponentInParent(type);
     }
 
-    internal static object GetComponentInParent(Component component, IType type)
+    internal static object GetComponentInParent(GameObject go, IType type)
     {
-        return GetComponentInParent(component, type is ILType ? type.ReflectionType : type.TypeForCLR);
+        return GetComponentInParent(go, type is ILType ? type.ReflectionType : type.TypeForCLR);
     }
 
-    internal static object GetComponentsInParent(Component component, Type type, bool includeInactive = false)
+    internal static object GetComponentsInParent(this GameObject go, Type type, bool includeInactive = false)
     {
         if (type is ILRuntimeType)
         {
-            return PrivateGetComponentsInParent(component, (type as ILRuntimeType).ILType, includeInactive, null);
+            return PrivateGetComponentsInParent(go, (type as ILRuntimeType).ILType, includeInactive, null);
         }
-        return component.GetComponentsInParent(type, includeInactive);
+        return go.GetComponentsInParent(type, includeInactive);
     }
 
-    internal static object GetComponentsInParent(Component component, IType type, bool includeInactive = false)
+    internal static object GetComponentsInParent(GameObject go, IType type, bool includeInactive = false)
     {
-        return GetComponentsInParent(component, type is ILType ? type.ReflectionType : type.TypeForCLR, includeInactive);
+        return GetComponentsInParent(go, type is ILType ? type.ReflectionType : type.TypeForCLR, includeInactive);
     }
 
+    internal static object AddComponent(GameObject go, Type type, AppDomain domain)
+    {
+        if (type is ILRuntimeType)
+        {
+            var ilType = (type as ILRuntimeType).ILType;
+            //热更DLL内的类型比较麻烦。首先我们得自己手动创建实例
+            var ilInstance = new ILTypeInstance(ilType, false);//手动创建实例是因为默认方式会new MonoBehaviour，这在Unity里不允许
+            //接下来创建Adapter实例
+            var monoAdaptorType = GetMonoAdaptorType(ilType);
+            var clrInstance = go.AddComponent(monoAdaptorType) as MonoBehaviourAdapter.MonoAdaptor;
+            //unity创建的实例并没有热更DLL里面的实例，所以需要手动赋值
+            clrInstance.Init(ilInstance, domain);
+
+            return ilInstance;
+        }
+        return go.AddComponent(type);
+    }
+
+    internal static object AddComponent(GameObject go, IType type, AppDomain domain)
+    {
+        return AddComponent(go, type is ILType ? type.ReflectionType : type.TypeForCLR, domain);
+    }
 
     #endregion
 

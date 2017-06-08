@@ -12,24 +12,7 @@ public class ILRuntimeCLRBinding
     static void GenerateCLRBinding()
     {
         List<Type> types = new List<Type>();
-        types.Add(typeof(int));
-        types.Add(typeof(float));
-        types.Add(typeof(long));
-        types.Add(typeof(object));
-        types.Add(typeof(string));
-        types.Add(typeof(Array));
-        types.Add(typeof(Vector2));
-        types.Add(typeof(Vector3));
-        types.Add(typeof(Quaternion));
-        types.Add(typeof(GameObject));
-        types.Add(typeof(UnityEngine.Object));
-        types.Add(typeof(Transform));
-        types.Add(typeof(RectTransform));
-        types.Add(typeof(CLRBindingTestClass));
-        types.Add(typeof(HelloWorld));
-        types.Add(typeof(Time));
-        types.Add(typeof(Debug));
-        types.Add(typeof(MonoBehaviour));
+        types.Add(typeof (UnityEngine.WaitForSeconds));
         //所有DLL内的类型的真实C#类型都是ILTypeInstance
         types.Add(typeof(List<ILRuntime.Runtime.Intepreter.ILTypeInstance>));
 

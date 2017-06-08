@@ -83,7 +83,7 @@ public class MonoBehaviourDemo : MonoBehaviour
         Debug.Log("因此我们需要挟持AddComponent方法，然后自己实现");
         Debug.Log("我们先销毁掉之前创建的不合法的MonoBehaviour");
 //        Object.Destroy(GetComponent<MonoBehaviourAdapter.Adaptor>());
-        SetupCLRRedirection();
+//        SetupCLRRedirection();
         appdomain.Invoke("HotFix_Project.TestMonoBehaviour", "RunTest", null, gameObject);
 
         Debug.Log("可以看到已经成功了");
@@ -97,7 +97,7 @@ public class MonoBehaviourDemo : MonoBehaviour
             Debug.LogError(ex.ToString());
         }
         Debug.Log("我们发现GetComponent出错了，这个跟AddComponent类似，需要我们自己处理");
-        SetupCLRRedirection2();
+//        SetupCLRRedirection2();
         Debug.Log("再试一次");
         appdomain.Invoke("HotFix_Project.TestMonoBehaviour", "RunTest2", null, gameObject);
         Debug.Log("再试一次， 成功了");

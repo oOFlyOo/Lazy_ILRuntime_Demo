@@ -19,6 +19,7 @@ namespace ILRuntime.Binding.Redirect
         {
             UnityEngine_Component_Binding.Register(domain);
             UnityEngine_Debug_Binding.Register(domain);
+            UnityEngine_GameObject_Binding.Register(domain);
             UnityEngine_MonoBehaviour_Binding.Register(domain);
         }
 

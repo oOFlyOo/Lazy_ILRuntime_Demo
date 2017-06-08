@@ -92,9 +92,11 @@ namespace HotFix_Project
     {
         public static void RunTest(GameObject go)
         {
-            go.AddComponent<SomeMonoBehaviour>();
+//            go.AddComponent<SomeMonoBehaviour>();
+            go.AddComponent(typeof(SomeMonoBehaviour));
             var some = go.AddComponent<SomeMonoBehaviour>();
-            var coms = some.GetComponents(some.GetType());
+//            var coms = some.GetComponents(some.GetType());
+            var coms = some.GetComponents<SomeMonoBehaviour>();
             Debug.LogError(coms.Length);
         }
 
@@ -103,12 +105,14 @@ namespace HotFix_Project
             go.AddComponent<SomeMonoBehaviour2>();
             var mb = go.GetComponent<SomeMonoBehaviour2>();
             var mb1 = mb.GetComponent(typeof(SomeMonoBehaviour)) as SomeMonoBehaviour;
+//            var mb1 = mb.GetComponent<SomeMonoBehaviour>();
             Debug.LogError(mb1.TestStr);
             go.AddComponent<EmptyMonoBehaviour>();
-            var coms = mb.GetComponents(typeof(EmptyMonoBehaviour));
+//            var coms = mb.GetComponents(typeof(EmptyMonoBehaviour));
+            var coms = mb.GetComponents<EmptyMonoBehaviour>();
             Debug.LogError(coms.Length);
             Debug.Log("!!!TestMonoBehaviour.RunTest2 mb= " + mb);
-//            mb.Test2();
+            mb.Test2();
         }
     }
 }

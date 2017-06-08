@@ -10,31 +10,25 @@ using ILRuntime.Runtime.Intepreter;
 using ILRuntime.Runtime.Stack;
 using ILRuntime.Reflection;
 using ILRuntime.CLR.Utils;
-using UnityEngine;
 
 namespace ILRuntime.Binding.Redirect
 {
-    unsafe internal static class UnityEngine_Component_Binding
+    unsafe internal static class UnityEngine_GameObject_Binding
     {
         public static void Register(ILRuntime.Runtime.Enviorment.AppDomain domain)
         {
             var flag = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
             MethodBase method;
             Type[] args;
-            Type type = typeof(UnityEngine.Component);
+            Type type = typeof(UnityEngine.GameObject);
+
+            args = new Type[] { typeof(System.Type) };
+            method = type.GetMethod("AddComponent", flag, null, args, null);
+            domain.RegisterCLRMethodRedirection(method, AddComponent_Type);
 
             args = new Type[] { typeof(System.Type) };
             method = type.GetMethod("GetComponent", flag, null, args, null);
             domain.RegisterCLRMethodRedirection(method, GetComponent_Type);
-
-            foreach (var methodInfo in type.GetMethods())
-            {
-                if (methodInfo.IsGenericMethodDefinition && methodInfo.Name == "" &&
-                    methodInfo.GetParameters().Length == 0 && methodInfo.GetGenericArguments().Length == 0)
-                {
-                    domain.RegisterCLRMethodRedirection(methodInfo, GetComponent_Type);
-                }
-            }
 
             args = new Type[] { typeof(System.Type) };
             method = type.GetMethod("GetComponentInChildren", flag, null, args, null);
@@ -64,9 +58,15 @@ namespace ILRuntime.Binding.Redirect
             method = type.GetMethod("GetComponentsInParent", flag, null, args, null);
             domain.RegisterCLRMethodRedirection(method, GetComponentsInParent_Type);
 
-            args = new Type[] { typeof(System.Type), typeof(System.Boolean) };
-            method = type.GetMethod("GetComponentsInParent", flag, null, args, null);
-            domain.RegisterCLRMethodRedirection(method, GetComponentsInParent_Type_Boolean);
+            foreach (var methodInfo in type.GetMethods(flag))
+            {
+                if (methodInfo.IsGenericMethodDefinition && methodInfo.Name == "AddComponent" &&
+                    methodInfo.GetParameters().Length == 0 && methodInfo.GetGenericArguments().Length == 1)
+                {
+                    domain.RegisterCLRMethodRedirection(methodInfo, AddComponent_T);
+                    break;
+                }
+            }
 
             foreach (var methodInfo in type.GetMethods(flag))
             {
@@ -159,6 +159,24 @@ namespace ILRuntime.Binding.Redirect
             }
         }
 
+        private static StackObject* AddComponent_Type(ILIntepreter __intp, StackObject* __esp, List<object> __mStack, CLRMethod __method, bool isNewObj)
+        {
+            ILRuntime.Runtime.Enviorment.AppDomain __domain = __intp.AppDomain;
+            StackObject* ptr_of_this_method;
+            StackObject* __ret = ILIntepreter.Minus(__esp, 2);
+            ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
+            var componentType = (System.Type)typeof(System.Type).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            __intp.Free(ptr_of_this_method);
+            ptr_of_this_method = ILIntepreter.Minus(__esp, 2);
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            __intp.Free(ptr_of_this_method);
+
+            var result_of_this_method = ILRMonoAdaptorHelper.AddComponent(instance_of_this_method, componentType, __domain);
+
+            return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
+        }
+
         private static StackObject* GetComponent_Type(ILIntepreter __intp, StackObject* __esp, List<object> __mStack, CLRMethod __method, bool isNewObj)
         {
             ILRuntime.Runtime.Enviorment.AppDomain __domain = __intp.AppDomain;
@@ -168,11 +186,11 @@ namespace ILRuntime.Binding.Redirect
             var type = (System.Type)typeof(System.Type).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 2);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponent(instance_of_this_method.gameObject, type);
+            var result_of_this_method = ILRMonoAdaptorHelper.GetComponent(instance_of_this_method, type);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
@@ -183,14 +201,14 @@ namespace ILRuntime.Binding.Redirect
             StackObject* ptr_of_this_method;
             StackObject* __ret = ILIntepreter.Minus(__esp, 2);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
-            var t = (System.Type)typeof(System.Type).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            var type = (System.Type)typeof(System.Type).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 2);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentInChildren(instance_of_this_method.gameObject, t);
+            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentInChildren(instance_of_this_method, type);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
@@ -203,14 +221,14 @@ namespace ILRuntime.Binding.Redirect
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
             var includeInactive = ptr_of_this_method->Value == 1;
             ptr_of_this_method = ILIntepreter.Minus(__esp, 2);
-            var t = (System.Type)typeof(System.Type).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            var type = (System.Type)typeof(System.Type).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 3);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentInChildren(instance_of_this_method.gameObject, t, includeInactive);
+            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentInChildren(instance_of_this_method, type, includeInactive);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
@@ -221,14 +239,14 @@ namespace ILRuntime.Binding.Redirect
             StackObject* ptr_of_this_method;
             StackObject* __ret = ILIntepreter.Minus(__esp, 2);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
-            var t = (System.Type)typeof(System.Type).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            var type = (System.Type)typeof(System.Type).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 2);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentInParent(instance_of_this_method.gameObject, t);
+            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentInParent(instance_of_this_method, type);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
@@ -242,11 +260,11 @@ namespace ILRuntime.Binding.Redirect
             var type = (System.Type)typeof(System.Type).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 2);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponents(instance_of_this_method.gameObject, type);
+            var result_of_this_method = ILRMonoAdaptorHelper.GetComponents(instance_of_this_method, type);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
@@ -257,14 +275,14 @@ namespace ILRuntime.Binding.Redirect
             StackObject* ptr_of_this_method;
             StackObject* __ret = ILIntepreter.Minus(__esp, 2);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
-            var t = (System.Type)typeof(System.Type).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            var type = (System.Type)typeof(System.Type).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 2);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentsInChildren(instance_of_this_method.gameObject, t);
+            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentsInChildren(instance_of_this_method, type);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
@@ -277,14 +295,14 @@ namespace ILRuntime.Binding.Redirect
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
             var includeInactive = ptr_of_this_method->Value == 1;
             ptr_of_this_method = ILIntepreter.Minus(__esp, 2);
-            var t = (System.Type)typeof(System.Type).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            var type = (System.Type)typeof(System.Type).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 3);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentsInChildren(instance_of_this_method.gameObject, t, includeInactive);
+            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentsInChildren(instance_of_this_method, type, includeInactive);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
@@ -295,34 +313,29 @@ namespace ILRuntime.Binding.Redirect
             StackObject* ptr_of_this_method;
             StackObject* __ret = ILIntepreter.Minus(__esp, 2);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
-            var t = (System.Type)typeof(System.Type).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            var type = (System.Type)typeof(System.Type).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 2);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentsInParent(instance_of_this_method.gameObject, t);
+            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentsInParent(instance_of_this_method, type);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
 
-        private static StackObject* GetComponentsInParent_Type_Boolean(ILIntepreter __intp, StackObject* __esp, List<object> __mStack, CLRMethod __method, bool isNewObj)
+        private static StackObject* AddComponent_T(ILIntepreter __intp, StackObject* __esp, List<object> __mStack, CLRMethod __method, bool isNewObj)
         {
             ILRuntime.Runtime.Enviorment.AppDomain __domain = __intp.AppDomain;
             StackObject* ptr_of_this_method;
-            StackObject* __ret = ILIntepreter.Minus(__esp, 3);
+            StackObject* __ret = ILIntepreter.Minus(__esp, 1);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
-            var includeInactive = ptr_of_this_method->Value == 1;
-            ptr_of_this_method = ILIntepreter.Minus(__esp, 2);
-            var t = (System.Type)typeof(System.Type).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
-            __intp.Free(ptr_of_this_method);
-            ptr_of_this_method = ILIntepreter.Minus(__esp, 3);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentsInParent(instance_of_this_method.gameObject, t, includeInactive);
+            var result_of_this_method = ILRMonoAdaptorHelper.AddComponent(instance_of_this_method, __method.GenericArguments[0], __domain);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
@@ -333,11 +346,11 @@ namespace ILRuntime.Binding.Redirect
             StackObject* ptr_of_this_method;
             StackObject* __ret = ILIntepreter.Minus(__esp, 1);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponent(instance_of_this_method.gameObject, __method.GenericArguments[0]);
+            var result_of_this_method = ILRMonoAdaptorHelper.GetComponent(instance_of_this_method, __method.GenericArguments[0]);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
@@ -348,11 +361,11 @@ namespace ILRuntime.Binding.Redirect
             StackObject* ptr_of_this_method;
             StackObject* __ret = ILIntepreter.Minus(__esp, 1);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentInChildren(instance_of_this_method.gameObject, __method.GenericArguments[0]);
+            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentInChildren(instance_of_this_method, __method.GenericArguments[0]);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
@@ -365,11 +378,11 @@ namespace ILRuntime.Binding.Redirect
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
             var includeInactive = ptr_of_this_method->Value == 1;
             ptr_of_this_method = ILIntepreter.Minus(__esp, 2);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentInChildren(instance_of_this_method.gameObject, __method.GenericArguments[0], includeInactive);
+            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentInChildren(instance_of_this_method, __method.GenericArguments[0], includeInactive);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
@@ -380,11 +393,11 @@ namespace ILRuntime.Binding.Redirect
             StackObject* ptr_of_this_method;
             StackObject* __ret = ILIntepreter.Minus(__esp, 1);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentInParent(instance_of_this_method.gameObject, __method.GenericArguments[0]);
+            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentInParent(instance_of_this_method, __method.GenericArguments[0]);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
@@ -395,11 +408,11 @@ namespace ILRuntime.Binding.Redirect
             StackObject* ptr_of_this_method;
             StackObject* __ret = ILIntepreter.Minus(__esp, 1);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponents(instance_of_this_method.gameObject, __method.GenericArguments[0]);
+            var result_of_this_method = ILRMonoAdaptorHelper.GetComponents(instance_of_this_method, __method.GenericArguments[0]);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
@@ -410,11 +423,11 @@ namespace ILRuntime.Binding.Redirect
             StackObject* ptr_of_this_method;
             StackObject* __ret = ILIntepreter.Minus(__esp, 1);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentsInChildren(instance_of_this_method.gameObject, __method.GenericArguments[0]);
+            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentsInChildren(instance_of_this_method, __method.GenericArguments[0]);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
@@ -427,11 +440,11 @@ namespace ILRuntime.Binding.Redirect
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
             var includeInactive = ptr_of_this_method->Value == 1;
             ptr_of_this_method = ILIntepreter.Minus(__esp, 2);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentsInChildren(instance_of_this_method.gameObject, __method.GenericArguments[0], includeInactive);
+            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentsInChildren(instance_of_this_method, __method.GenericArguments[0], includeInactive);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
@@ -442,11 +455,11 @@ namespace ILRuntime.Binding.Redirect
             StackObject* ptr_of_this_method;
             StackObject* __ret = ILIntepreter.Minus(__esp, 1);
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
-            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentsInParent(instance_of_this_method.gameObject, __method.GenericArguments[0]);
+            var result_of_this_method = ILRMonoAdaptorHelper.GetComponentsInParent(instance_of_this_method, __method.GenericArguments[0]);
 
             return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
         }
@@ -459,8 +472,8 @@ namespace ILRuntime.Binding.Redirect
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
             var includeInactive = ptr_of_this_method->Value == 1;
             ptr_of_this_method = ILIntepreter.Minus(__esp, 2);
-            UnityEngine.Component instance_of_this_method;
-            instance_of_this_method = (UnityEngine.Component)typeof(UnityEngine.Component).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
+            UnityEngine.GameObject instance_of_this_method;
+            instance_of_this_method = (UnityEngine.GameObject)typeof(UnityEngine.GameObject).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
             var result_of_this_method = ILRMonoAdaptorHelper.GetComponentsInParent(instance_of_this_method.gameObject, __method.GenericArguments[0], includeInactive);

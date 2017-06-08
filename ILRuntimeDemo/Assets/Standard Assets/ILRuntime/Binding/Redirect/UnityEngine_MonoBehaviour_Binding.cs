@@ -69,7 +69,8 @@ namespace ILRuntime.Binding.Redirect
             ILRuntime.Runtime.Enviorment.AppDomain __domain = __intp.AppDomain;
             StackObject* ptr_of_this_method;
             StackObject* __ret = ILIntepreter.Minus(__esp, 1);
-            ptr_of_this_method = ILIntepreter.Minus(__esp, 1); UnityEngine.MonoBehaviour instance_of_this_method;
+            ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
+            UnityEngine.MonoBehaviour instance_of_this_method;
             instance_of_this_method = (UnityEngine.MonoBehaviour)typeof(UnityEngine.MonoBehaviour).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
@@ -96,7 +97,8 @@ namespace ILRuntime.Binding.Redirect
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
             var methodName = (System.String)typeof(System.String).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
-            ptr_of_this_method = ILIntepreter.Minus(__esp, 2); UnityEngine.MonoBehaviour instance_of_this_method;
+            ptr_of_this_method = ILIntepreter.Minus(__esp, 2);
+            UnityEngine.MonoBehaviour instance_of_this_method;
             instance_of_this_method = (UnityEngine.MonoBehaviour)typeof(UnityEngine.MonoBehaviour).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
@@ -121,7 +123,8 @@ namespace ILRuntime.Binding.Redirect
             ILRuntime.Runtime.Enviorment.AppDomain __domain = __intp.AppDomain;
             StackObject* ptr_of_this_method;
             StackObject* __ret = ILIntepreter.Minus(__esp, 1);
-            ptr_of_this_method = ILIntepreter.Minus(__esp, 1); UnityEngine.MonoBehaviour instance_of_this_method;
+            ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
+            UnityEngine.MonoBehaviour instance_of_this_method;
             instance_of_this_method = (UnityEngine.MonoBehaviour)typeof(UnityEngine.MonoBehaviour).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
@@ -145,7 +148,8 @@ namespace ILRuntime.Binding.Redirect
             ptr_of_this_method = ILIntepreter.Minus(__esp, 1);
             var methodName = (System.String)typeof(System.String).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
-            ptr_of_this_method = ILIntepreter.Minus(__esp, 2); UnityEngine.MonoBehaviour instance_of_this_method;
+            ptr_of_this_method = ILIntepreter.Minus(__esp, 2);
+            UnityEngine.MonoBehaviour instance_of_this_method;
             instance_of_this_method = (UnityEngine.MonoBehaviour)typeof(UnityEngine.MonoBehaviour).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
@@ -171,7 +175,8 @@ namespace ILRuntime.Binding.Redirect
             ptr_of_this_method = ILIntepreter.Minus(__esp, 2);
             var methodName = (System.String)typeof(System.String).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
-            ptr_of_this_method = ILIntepreter.Minus(__esp, 3); UnityEngine.MonoBehaviour instance_of_this_method;
+            ptr_of_this_method = ILIntepreter.Minus(__esp, 3);
+            UnityEngine.MonoBehaviour instance_of_this_method;
             instance_of_this_method = (UnityEngine.MonoBehaviour)typeof(UnityEngine.MonoBehaviour).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
@@ -199,7 +204,8 @@ namespace ILRuntime.Binding.Redirect
             ptr_of_this_method = ILIntepreter.Minus(__esp, 3);
             var methodName = (System.String)typeof(System.String).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
-            ptr_of_this_method = ILIntepreter.Minus(__esp, 4); UnityEngine.MonoBehaviour instance_of_this_method;
+            ptr_of_this_method = ILIntepreter.Minus(__esp, 4);
+            UnityEngine.MonoBehaviour instance_of_this_method;
             instance_of_this_method = (UnityEngine.MonoBehaviour)typeof(UnityEngine.MonoBehaviour).CheckCLRTypes(StackObject.ToObject(ptr_of_this_method, __domain, __mStack));
             __intp.Free(ptr_of_this_method);
 
