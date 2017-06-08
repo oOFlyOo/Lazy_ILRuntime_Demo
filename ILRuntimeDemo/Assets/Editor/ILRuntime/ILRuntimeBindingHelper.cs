@@ -354,6 +354,15 @@ public static class ILRuntimeBindingHelper
         return realClsName;
     }
 
+    public static string GetSimpleClassName(this Type type)
+    {
+        string clsName, realClsName;
+        bool temp;
+        type.GetClassName(out clsName, out realClsName, out temp, true);
+
+        return clsName;
+    }
+
     public static bool IsProperty(this MethodInfo method)
     {
         if (method.IsSpecialName)
@@ -368,13 +377,23 @@ public static class ILRuntimeBindingHelper
         return false;
     }
 
-    public static string GetMethodName(CLRMethod method)
+    public static string GetMethodName(MethodBase method)
     {
         StringBuilderAppend(method.Name);
-        foreach (var parameter in method.Parameters)
+
+        if (method.ContainsGenericParameters)
+        {
+            foreach (var genericArgument in method.GetGenericArguments())
+            {
+                StringBuilderAppend("_");
+                StringBuilderAppend(genericArgument.Name);
+            }
+        }
+
+        foreach (var parameter in method.GetParameters())
         {
             StringBuilderAppend("_");
-            StringBuilderAppend(parameter.TypeForCLR.Name);
+            StringBuilderAppend(parameter.ParameterType.GetSimpleClassName());
         }
 
         if (method.IsConstructor)
@@ -387,24 +406,42 @@ public static class ILRuntimeBindingHelper
         }
     }
 
-    public static string GetConstructorGenerateCode(CLRMethod method)
+    public static string GetConstructorGenerateCode(ConstructorInfo method)
     {
         var registerCode = string.Format(@"
             args = new Type[]{{{0}}};
             method = type.GetConstructor(flag, null, args, null);
             domain.RegisterCLRMethodRedirection(method, {1});
-", GetParamTypeTypesCode(method.ConstructorInfo.GetParameters()), GetMethodName(method));
+", GetParamTypeTypesCode(method.GetParameters()), GetMethodName(method));
 
         return registerCode;
     }
 
-    public static string GetMethodGenerateCode(CLRMethod method)
+    public static string GetMethodGenerateCode(MethodInfo method)
     {
-        var registerCode = string.Format(@"
+        string registerCode = null;
+        if (!method.IsGenericMethodDefinition)
+        {
+            registerCode = string.Format(@"
             args = new Type[]{{{0}}};
             method = type.GetMethod(""{2}"", flag, null, args, null);
             domain.RegisterCLRMethodRedirection(method, {1});
-", GetParamTypeTypesCode(method.MethodInfo.GetParameters()), GetMethodName(method), method.Name);
+", GetParamTypeTypesCode(method.GetParameters()), GetMethodName(method), method.Name);
+        }
+        else
+        {
+            registerCode = string.Format(@"
+            foreach (var methodInfo in type.GetMethods(flag))
+            {{
+                if (methodInfo.IsGenericMethodDefinition && methodInfo.Name == ""{0}"" &&
+                    methodInfo.GetParameters().Length == {1} && methodInfo.GetGenericArguments().Length == {2})
+                {{
+                    domain.RegisterCLRMethodRedirection(methodInfo, {3});
+                    break;
+                }}
+            }}
+", method.Name, method.GetParameters().Length, method.GetGenericArguments().Length, GetMethodName(method));
+        }
 
         return registerCode;
     }
@@ -523,8 +560,10 @@ public static class ILRuntimeBindingHelper
 ", type.GetRealClassName()));
     }
 
-    public static bool CheckAndChangeRedirect(string className, string methodName, StringBuilder sb)
+    public static bool CheckAndChangeRedirect(MethodBase methodBase, StringBuilder sb)
     {
+        var className = methodBase.DeclaringType.GetRealClassName();
+        var methodName = methodBase.Name;
         var type = EditorHelper.GetType("ILRuntime.Binding.Redirect." + className);
         if (type != null)
         {
@@ -754,6 +793,7 @@ public static class ILRuntimeBindingHelper
 
     public static string GetReturnValueCode(CLRMethod method)
     {
+        // Constructor
         var type = method.ReturnType.TypeForCLR;
         var sb = new StringBuilder();
         if (type == typeof (void))

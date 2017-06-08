@@ -259,12 +259,22 @@ namespace ILRuntime.Binding.Generated
 
         foreach (var constructor in typeInfo.Constructors)
         {
-            sb.Append(GenerateConstructor(clsName, constructor, methodSb));
+            sb.Append(GenerateConstructor(constructor, methodSb));
         }
 
+        var _tempGenericMethodDef = new HashSet<MethodInfo>();
         foreach (var clrMethod in typeInfo.Methods)
         {
-            sb.Append(GenerateMethod(clsName, clrMethod, methodSb));
+            if (clrMethod.MethodInfo.IsGenericMethod)
+            {
+                var def = clrMethod.MethodInfo.GetGenericMethodDefinition();
+                if (_tempGenericMethodDef.Contains(def))
+                {
+                    continue;
+                }
+                _tempGenericMethodDef.Add(def);
+            }
+            sb.Append(GenerateMethod(clrMethod, methodSb));
         }
 
         sb.Append(string.Format(@"
@@ -300,21 +310,22 @@ namespace ILRuntime.Binding.Generated
         ILRuntimeBindingHelper.GetWriteBackInstanceCode(type, sb);
     }
 
-    private static string GenerateConstructor(string clsName, CLRMethod method, StringBuilder sb)
+    private static string GenerateConstructor(CLRMethod method, StringBuilder sb)
     {
         if (ShouldSkipMethod(method))
         {
             return null;
         }
 
-        var methodName = ILRuntimeBindingHelper.GetMethodName(method);
+        var methodInfo = method.ConstructorInfo;
 
-        if (ILRuntimeBindingHelper.CheckAndChangeRedirect(clsName, methodName, sb))
+        if (ILRuntimeBindingHelper.CheckAndChangeRedirect(methodInfo, sb))
         {
-            return ILRuntimeBindingHelper.GetConstructorGenerateCode(method);
+            return ILRuntimeBindingHelper.GetConstructorGenerateCode(methodInfo);
         }
 
-        var parameters = method.ConstructorInfo.GetParameters();
+        var methodName = ILRuntimeBindingHelper.GetMethodName(methodInfo);
+        var parameters = methodInfo.GetParameters();
 
         ILRuntimeBindingHelper.GetMethodHeader(methodName, parameters.Length, sb);
 
@@ -323,9 +334,9 @@ namespace ILRuntime.Binding.Generated
 
         sb.Append(string.Format(@"
             var result_of_this_method = new {0}({1});
-", method.DeclearingType.TypeForCLR.GetRealClassName(), ILRuntimeBindingHelper.GetParamsCode(method.ConstructorInfo.GetParameters())));
+", methodInfo.DeclaringType.GetRealClassName(), ILRuntimeBindingHelper.GetParamsCode(methodInfo.GetParameters())));
 
-        if (method.DeclearingType.TypeForCLR.IsValueType)
+        if (methodInfo.DeclaringType.IsValueType)
         {
             sb.Append(@"
             if(!isNewObj)
@@ -343,26 +354,32 @@ namespace ILRuntime.Binding.Generated
         }}
 ", ILRuntimeBindingHelper.GetReturnValueCode(method)));
 
-        return ILRuntimeBindingHelper.GetConstructorGenerateCode(method);
+        return ILRuntimeBindingHelper.GetConstructorGenerateCode(methodInfo);
     }
 
-    private static string GenerateMethod(string clsName, CLRMethod method, StringBuilder sb)
+    private static string GenerateMethod(CLRMethod method, StringBuilder sb)
     {
         if (ShouldSkipMethod(method))
         {
             return null;
         }
 
-        var type = method.DeclearingType.TypeForCLR;
-        var typeClsName = type.GetRealClassName();
-        var methodName = ILRuntimeBindingHelper.GetMethodName(method);
-
-        if (ILRuntimeBindingHelper.CheckAndChangeRedirect(clsName, methodName, sb))
+        var methodInfo = method.MethodInfo;
+        if (methodInfo.IsGenericMethod)
         {
-            return ILRuntimeBindingHelper.GetMethodGenerateCode(method);
+            methodInfo = methodInfo.GetGenericMethodDefinition();
         }
 
-        var methodInfo = method.MethodInfo;
+
+        if (ILRuntimeBindingHelper.CheckAndChangeRedirect(methodInfo, sb))
+        {
+            return ILRuntimeBindingHelper.GetMethodGenerateCode(methodInfo);
+        }
+
+        var type = methodInfo.DeclaringType;
+        var typeClsName = type.GetRealClassName();
+        var methodName = ILRuntimeBindingHelper.GetMethodName(methodInfo);
+
         var isProperty = methodInfo.IsProperty();
         var parameters = methodInfo.GetParameters();
 
@@ -373,7 +390,7 @@ namespace ILRuntime.Binding.Generated
 
         if (!methodInfo.IsStatic)
         {
-            sb.Append(string.Format(tabs + @"ptr_of_this_method = ILIntepreter.Minus(__esp, {0});", methodInfo.IsStatic ? parameters.Length : parameters.Length + 1));
+            sb.AppendLine(string.Format(tabs + @"ptr_of_this_method = ILIntepreter.Minus(__esp, {0});", methodInfo.IsStatic ? parameters.Length : parameters.Length + 1));
             if (type.IsPrimitive)
             {
                 sb.AppendLine(string.Format(tabs + "{0} instance_of_this_method = GetInstance(__domain, ptr_of_this_method, __mStack);", typeClsName));
@@ -407,7 +424,7 @@ namespace ILRuntime.Binding.Generated
         {
             if (isProperty)
             {
-                var t = method.Name.Split('_');
+                var t = methodInfo.Name.Split('_');
                 string propType = t[0];
 
                 if (propType == "get")
@@ -508,9 +525,16 @@ namespace ILRuntime.Binding.Generated
             }
             else
             {
-                sb.Append(string.Format("{0}.{1}(", typeClsName, methodInfo.Name));
-                sb.Append(ILRuntimeBindingHelper.GetParamsCode(parameters));
-                sb.AppendLine(");");
+                if (!methodInfo.IsGenericMethodDefinition)
+                {
+                    sb.Append(string.Format("{0}.{1}(", typeClsName, methodInfo.Name));
+                    sb.Append(ILRuntimeBindingHelper.GetParamsCode(parameters));
+                    sb.AppendLine(");");
+                }
+                else
+                {
+                    sb.AppendLine("new object();");
+                }
             }
         }
         else
@@ -545,15 +569,22 @@ namespace ILRuntime.Binding.Generated
             }
             else
             {
-                sb.Append(string.Format("instance_of_this_method.{0}(", methodInfo.Name));
-                sb.Append(ILRuntimeBindingHelper.GetParamsCode(parameters));
-                sb.AppendLine(");");
+                if (!methodInfo.IsGenericMethodDefinition)
+                {
+                    sb.Append(string.Format("instance_of_this_method.{0}(", methodInfo.Name));
+                    sb.Append(ILRuntimeBindingHelper.GetParamsCode(parameters));
+                    sb.AppendLine(");");
+                }
+                else
+                {
+                    sb.AppendLine("new object();");
+                }
             }
         }
         sb.AppendLine();
 
 
-        if (!method.IsStatic && type.IsValueType && !type.IsPrimitive)//need to write back value type instance
+        if (!methodInfo.IsStatic && type.IsValueType && !type.IsPrimitive)//need to write back value type instance
         {
             sb.AppendLine(tabs + "WriteBackInstance(__domain, ptr_of_this_method, __mStack, ref instance_of_this_method);");
             sb.AppendLine();
@@ -565,7 +596,7 @@ namespace ILRuntime.Binding.Generated
         }}
 ", ILRuntimeBindingHelper.GetReturnValueCode(method)));
 
-        return ILRuntimeBindingHelper.GetMethodGenerateCode(method);
+        return ILRuntimeBindingHelper.GetMethodGenerateCode(methodInfo);
     }
 
     private static bool ShouldSkipMethod(CLRMethod method)
@@ -585,6 +616,7 @@ namespace ILRuntime.Binding.Generated
             methodInfo = method.MethodInfo;
         }
 
+//        if (methodInfo.IsGenericMethod && methodInfo.DeclaringType != typeof(UnityEngine.GameObject))
         if (methodInfo.IsGenericMethod)
         {
             return true;
