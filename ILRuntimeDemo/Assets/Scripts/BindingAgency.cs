@@ -1,5 +1,6 @@
 ﻿#if UNITY_EDITOR
 
+using System;
 using UnityEngine;
 
 
@@ -19,6 +20,29 @@ internal static class BindingAgency
         mono.CancelInvoke("");
         mono.IsInvoking();
         mono.IsInvoking("");
+
+        mono.GetComponent<MonoBehaviour>();
+        mono.GetComponent((Type) null);
+        mono.GetComponentInChildren<MonoBehaviour>();
+        mono.GetComponentInChildren<MonoBehaviour>(false);
+        mono.GetComponentInChildren((Type)null);
+        mono.GetComponentInChildren((Type)null, false);
+        mono.GetComponentInParent<MonoBehaviour>();
+        mono.GetComponentInParent((Type)null);
+        mono.GetComponents<MonoBehaviour>();
+        mono.GetComponents<MonoBehaviour>(null);
+        mono.GetComponents((Type)null);
+        mono.GetComponentsInChildren<MonoBehaviour>();
+        mono.GetComponentsInChildren<MonoBehaviour>(false);
+        mono.GetComponentsInChildren<MonoBehaviour>(null);
+        mono.GetComponentsInChildren<MonoBehaviour>(false, null);
+        mono.GetComponentsInChildren((Type)null);
+        mono.GetComponentsInChildren((Type)null, false);
+        mono.GetComponentsInParent<MonoBehaviour>();
+        mono.GetComponentsInParent<MonoBehaviour>(false);
+        mono.GetComponentsInParent<MonoBehaviour>(false, null);
+        mono.GetComponentsInParent((Type)null);
+        mono.GetComponentsInParent((Type)null, false);
     }
 }
 

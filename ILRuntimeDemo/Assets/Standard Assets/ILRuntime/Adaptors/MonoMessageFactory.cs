@@ -5,6 +5,7 @@ using ILRuntime.CLR.Method;
 using ILRuntime.CLR.TypeSystem;
 using ILRuntime.Runtime.Adaptor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 internal static class MonoMessageFactory
 {
@@ -20,40 +21,46 @@ internal static class MonoMessageFactory
         }
     }
 
-public static void RegisterMonoMessage(MonoBehaviourAdapter.MonoAdaptor adaptor)
+    public static void RegisterMonoMessage(MonoBehaviourAdapter.MonoAdaptor adaptor)
     {
-        foreach (var pair in adaptor.MonoMethodDict)
+        if (adaptor.MonoMethodDict != null)
         {
-            Type msgType;
-            if (_monoMethodTypeDict.TryGetValue(pair.Key, out msgType))
+            foreach (var pair in adaptor.MonoMethodDict)
             {
-                var msgBase = AddOrGetComponent(adaptor, msgType);
-                msgBase.AddMonoAdaptor(adaptor);
+                Type msgType;
+                if (_monoMethodTypeDict.TryGetValue(pair.Key, out msgType))
+                {
+                    var msgBase = AddOrGetComponent(adaptor, msgType);
+                    msgBase.AddMonoAdaptor(adaptor);
+                }
             }
         }
     }
 
     public static void UnRegisterMonoMessage(MonoBehaviourAdapter.MonoAdaptor adaptor)
     {
-        foreach (var pair in adaptor.MonoMethodDict)
+        if (adaptor.MonoMethodDict != null)
         {
-            Type msgType;
-            if (_monoMethodTypeDict.TryGetValue(pair.Key, out msgType))
+            foreach (var pair in adaptor.MonoMethodDict)
             {
-                var msgBase = adaptor.GetComponent(msgType) as MonoMessageBase;
-                if (msgBase != null)
+                Type msgType;
+                if (_monoMethodTypeDict.TryGetValue(pair.Key, out msgType))
                 {
-                    msgBase.RemoveMonoAdaptor(adaptor);
-
-                    // 这里可以考虑缓存
-                    if (msgBase.MonoAdaptorCount <= 0)
+                    var msgBase = adaptor.GetComponent(msgType) as MonoMessageBase;
+                    if (msgBase != null)
                     {
-                        UnityEngine.Object.Destroy(msgBase);
+                        msgBase.RemoveMonoAdaptor(adaptor);
+
+                        // 这里可以考虑缓存
+                        if (msgBase.MonoAdaptorCount <= 0)
+                        {
+                            Object.Destroy(msgBase);
+                        }
                     }
-                }
-                else
-                {
-                    throw new MissingComponentException(msgType.FullName);
+                    else
+                    {
+                        throw new MissingComponentException(msgType.FullName);
+                    }
                 }
             }
         }

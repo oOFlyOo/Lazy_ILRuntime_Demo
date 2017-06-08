@@ -16,12 +16,12 @@ namespace ILRuntime.Runtime.Adaptor
 
         public override Type BaseCLRType
         {
-            get { return typeof (MonoBehaviour); }
+            get { return typeof(MonoBehaviour); }
         }
 
         public override Type AdaptorType
         {
-            get { return typeof (MonoAdaptor); }
+            get { return typeof(MonoAdaptor); }
         }
 
         public override object CreateCLRInstance(ILRuntime.Runtime.Enviorment.AppDomain appdomain,
@@ -32,25 +32,38 @@ namespace ILRuntime.Runtime.Adaptor
 
         public class MonoAdaptor : MonoBehaviour, CrossBindingAdaptorType
         {
-            private static Dictionary<ILType, Dictionary<string, ILMethod>> _cacheMonoMethods = new Dictionary<ILType, Dictionary<string, ILMethod>>();
+            #region 缓存 Mono 信息
+            private class MonoMethod
+            {
+                public ILMethod CacheConstruct;
+                public Dictionary<string, ILMethod> CacheMethoDict;
+            }
+            private static Dictionary<ILType, MonoMethod> _cacheMonoMethodDict = new Dictionary<ILType, MonoMethod>();
 
             private static void InitMonoMethods(ILType ilType)
             {
-                if (!_cacheMonoMethods.ContainsKey(ilType))
+                if (!_cacheMonoMethodDict.ContainsKey(ilType))
                 {
-                    var methodDict = new Dictionary<string, ILMethod>();
-                    _cacheMonoMethods[ilType] = methodDict;
+                    var monoMethod = new MonoMethod();
+                    monoMethod.CacheConstruct = ilType.GetConstructor(0) as ILMethod;
+
                     foreach (var pair in ILRMonoAdaptorHelper.AllMethodDict)
                     {
                         var info = pair.Value;
                         var method = ilType.GetMethod(info.Name, info.ParamCount) as ILMethod;
                         if (method != null)
                         {
-                            methodDict[info.Name] = method;
+                            if (monoMethod.CacheMethoDict == null)
+                            {
+                                monoMethod.CacheMethoDict = new Dictionary<string, ILMethod>();
+                            }
+                            monoMethod.CacheMethoDict[info.Name] = method;
                         }
                     }
+                    _cacheMonoMethodDict[ilType] = monoMethod;
                 }
             }
+            #endregion
 
             protected ILTypeInstance _instance;
             private ILRuntime.Runtime.Enviorment.AppDomain _appdomain;
@@ -62,7 +75,12 @@ namespace ILRuntime.Runtime.Adaptor
 
             public Dictionary<string, ILMethod> MonoMethodDict
             {
-                get { return _cacheMonoMethods[_instance.Type]; }
+                get { return _cacheMonoMethodDict[_instance.Type].CacheMethoDict; }
+            }
+
+            private ILMethod Constructor
+            {
+                get { return _cacheMonoMethodDict[_instance.Type].CacheConstruct; }
             }
 
             public virtual void Init(ILTypeInstance instance, ILRuntime.Runtime.Enviorment.AppDomain domain)
@@ -74,6 +92,7 @@ namespace ILRuntime.Runtime.Adaptor
 
                 InitMonoMethods(instance.Type);
 
+                domain.Invoke(Constructor, instance);
                 MonoMessageFactory.RegisterMonoMessage(this);
 
                 if (isActiveAndEnabled)
@@ -85,7 +104,7 @@ namespace ILRuntime.Runtime.Adaptor
             public void ReceiveMessage(string methodName, params object[] arg)
             {
                 ILMethod method;
-                if (_cacheMonoMethods[_instance.Type].TryGetValue(methodName, out method))
+                if (_cacheMonoMethodDict[_instance.Type].CacheMethoDict != null && _cacheMonoMethodDict[_instance.Type].CacheMethoDict.TryGetValue(methodName, out method))
                 {
                     _appdomain.Invoke(method, _instance, arg);
                 }

@@ -24,6 +24,10 @@ namespace ILRuntime.Binding.Redirect
             Type type = typeof(UnityEngine.MonoBehaviour);
 
             args = new Type[] { };
+            method = type.GetConstructor(flag, null, args, null);
+            domain.RegisterCLRMethodRedirection(method, ctor);
+
+            args = new Type[] { };
             method = type.GetMethod("IsInvoking", flag, null, args, null);
             domain.RegisterCLRMethodRedirection(method, IsInvoking);
 
@@ -46,6 +50,18 @@ namespace ILRuntime.Binding.Redirect
             args = new Type[] { typeof(System.String), typeof(System.Single), typeof(System.Single) };
             method = type.GetMethod("InvokeRepeating", flag, null, args, null);
             domain.RegisterCLRMethodRedirection(method, InvokeRepeating_String_Single_Single);
+        }
+
+        private static StackObject* ctor(ILIntepreter __intp, StackObject* __esp, List<object> __mStack, CLRMethod __method, bool isNewObj)
+        {
+//            ILRuntime.Runtime.Enviorment.AppDomain __domain = __intp.AppDomain;
+//            StackObject* ptr_of_this_method;
+//            StackObject* __ret = ILIntepreter.Minus(__esp, 0);
+//            var result_of_this_method = new UnityEngine.MonoBehaviour();
+//            return ILIntepreter.PushObject(__ret, __mStack, result_of_this_method);
+
+            // 直接无视
+            return __esp;
         }
 
         public static StackObject* IsInvoking(ILIntepreter __intp, StackObject* __esp, List<object> __mStack, CLRMethod __method, bool isNewObj)

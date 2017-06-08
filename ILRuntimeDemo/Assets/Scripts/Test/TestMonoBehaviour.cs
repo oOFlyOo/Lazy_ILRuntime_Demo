@@ -8,8 +8,10 @@ namespace HotFix_Project
     class SomeMonoBehaviour : MonoBehaviour
     {
         float time;
+        public string TestStr = "dklsjflksdjfkljsdklfjsdkjfk";
         void Awake()
         {
+            Debug.LogError(TestStr);
             Debug.Log("!! SomeMonoBehaviour.Awake");
         }
 
@@ -82,18 +84,29 @@ namespace HotFix_Project
         }
     }
 
+    class EmptyMonoBehaviour: MonoBehaviour
+    {
+    }
+
     public class TestMonoBehaviour
     {
         public static void RunTest(GameObject go)
         {
             go.AddComponent<SomeMonoBehaviour>();
-            go.AddComponent<SomeMonoBehaviour>();
+            var some = go.AddComponent<SomeMonoBehaviour>();
+            var coms = some.GetComponents(some.GetType());
+            Debug.LogError(coms.Length);
         }
 
         public static void RunTest2(GameObject go)
         {
             go.AddComponent<SomeMonoBehaviour2>();
             var mb = go.GetComponent<SomeMonoBehaviour2>();
+            var mb1 = mb.GetComponent(typeof(SomeMonoBehaviour)) as SomeMonoBehaviour;
+            Debug.LogError(mb1.TestStr);
+            go.AddComponent<EmptyMonoBehaviour>();
+            var coms = mb.GetComponents(typeof(EmptyMonoBehaviour));
+            Debug.LogError(coms.Length);
             Debug.Log("!!!TestMonoBehaviour.RunTest2 mb= " + mb);
 //            mb.Test2();
         }

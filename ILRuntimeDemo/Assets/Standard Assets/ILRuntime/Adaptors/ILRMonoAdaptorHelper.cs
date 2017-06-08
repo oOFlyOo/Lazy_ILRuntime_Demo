@@ -1,12 +1,266 @@
 ﻿
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using ILRuntime.CLR.TypeSystem;
+using ILRuntime.Reflection;
+using ILRuntime.Runtime.Adaptor;
+using ILRuntime.Runtime.Intepreter;
 using UnityEngine;
 
 public static class ILRMonoAdaptorHelper
 {
+    private static Dictionary<ILType, Type> _cacheMonoAdaptorTypeDict = new Dictionary<ILType, Type>();
+    internal static Type GetMonoAdaptorType(ILType ilType)
+    {
+        Type adaptorType = null;
+        if (!_cacheMonoAdaptorTypeDict.TryGetValue(ilType, out adaptorType))
+        {
+            foreach (var monoMethodInfo in EnableMethods)
+            {
+                if (ilType.GetMethod(monoMethodInfo.Name, monoMethodInfo.ParamCount) != null)
+                {
+                    adaptorType = MonoEnableAdaptorType;
+                    break;
+                }
+            }
+
+            if (adaptorType == null)
+            {
+                adaptorType = MonoAdaptorType;
+            }
+            _cacheMonoAdaptorTypeDict[ilType] = adaptorType;
+        }
+
+        return adaptorType;
+    }
+
+    internal static bool IsMonoAdaptor(this MonoBehaviour mono)
+    {
+        return (mono as MonoBehaviourAdapter.MonoAdaptor) != null;
+    }
+
+    internal static bool IsMonoAdaptor(this Type type)
+    {
+        return MonoAdaptorType.IsAssignableFrom(type);
+    }
+
+#region 获取 component
+    private static List<MonoBehaviourAdapter.MonoAdaptor> _tempMonoList = new List<MonoBehaviourAdapter.MonoAdaptor>();
+    private static List<MonoBehaviourAdapter.MonoEnableAdaptor> _tempMonoEnableList = new List<MonoBehaviourAdapter.MonoEnableAdaptor>();
+    private static List<ILTypeInstance> _tempInstanceList = new List<ILTypeInstance>();
+
+    private static List<ILTypeInstance> CheckInstanceList(List<ILTypeInstance> list)
+    {
+        list = list ?? _tempInstanceList;
+        list.Clear();
+        return list;
+    }
+
+    private static ILTypeInstance CheckComponentAndClearList(IList list, ILType type)
+    {
+        MonoBehaviourAdapter.MonoAdaptor adaptor = null;
+        for (int i = 0; i < list.Count; i++)
+        {
+            adaptor = list[i] as MonoBehaviourAdapter.MonoAdaptor;
+            if (adaptor.ILInstance.Type == type)
+            {
+                break;
+            }
+        }
+        list.Clear();
+
+        return adaptor == null ? null : adaptor.ILInstance;
+    }
+
+    private static ILTypeInstance[] CheckComponentsAndClearList(IList list, ILType type, List<ILTypeInstance> results)
+    {
+        var tempList = CheckInstanceList(results);
+        for (int i = 0; i < list.Count; i++)
+        {
+            var adaptor = list[i] as MonoBehaviourAdapter.MonoAdaptor;
+            if (adaptor.ILInstance.Type == type)
+            {
+                tempList.Add(adaptor.ILInstance);
+            }
+        }
+        list.Clear();
+
+        if (results == null)
+        {
+            var array = tempList.ToArray();
+            tempList.Clear();
+            return array;
+        }
+        return null;
+    }
+
+    private static IList GetComponentsWithoutCheck(Component component, ILType type)
+    {
+        var adaptorType = GetMonoAdaptorType(type);
+        if (adaptorType == MonoAdaptorType)
+        {
+            component.GetComponents(_tempMonoList);
+            return _tempMonoList;
+        }
+        component.GetComponents(_tempMonoEnableList);
+        return _tempMonoEnableList;
+    }
+
+    private static ILTypeInstance PrivateGetComponent(Component component, ILType type)
+    {
+        var list = GetComponentsWithoutCheck(component, type);
+
+        return CheckComponentAndClearList(list, type);
+    }
+
+    private static ILTypeInstance[] PrivateGetComponents(Component component, ILType type, List<ILTypeInstance> results = null)
+    {
+        var list = GetComponentsWithoutCheck(component, type);
+
+        return CheckComponentsAndClearList(list, type, results);
+    }
+
+    internal static object GetComponent(Component component, Type type)
+    {
+        if (type is ILRuntimeType)
+        {
+            return PrivateGetComponent(component, (type as ILRuntimeType).ILType);
+        }
+        return component.GetComponent(type);
+    }
+
+    internal static object GetComponent(Component component, IType type)
+    {
+        return GetComponent(component, type is ILType ? type.ReflectionType : type.TypeForCLR);
+    }
+
+    internal static object GetComponents(Component component, Type type)
+    {
+        if (type is ILRuntimeType)
+        {
+            return PrivateGetComponents(component, (type as ILRuntimeType).ILType, null);
+        }
+        return component.GetComponents(type);
+    }
+
+    internal static object GetComponents(Component component, IType type)
+    {
+        return GetComponents(component, type is ILType ? type.ReflectionType : type.TypeForCLR);
+    }
+
+    private static IList GetComponentsInChildrenWithoutCheck(Component component, ILType type, bool includeInactive)
+    {
+        var adaptorType = GetMonoAdaptorType(type);
+        if (adaptorType == MonoAdaptorType)
+        {
+            component.GetComponentsInChildren(includeInactive, _tempMonoList);
+            return _tempMonoList;
+        }
+        component.GetComponentsInChildren(includeInactive, _tempMonoEnableList);
+        return _tempMonoEnableList;
+    }
+
+    private static ILTypeInstance PrivateGetComponentInChildren(Component component, ILType type, bool includeInactive)
+    {
+        var list = GetComponentsInChildrenWithoutCheck(component, type, includeInactive);
+
+        return CheckComponentAndClearList(list, type);
+    }
+
+    private static ILTypeInstance[] PrivateGetComponentsInChildren(Component component, ILType type, bool includeInactive, List<ILTypeInstance> results = null)
+    {
+        var list = GetComponentsInChildrenWithoutCheck(component, type, includeInactive);
+
+        return CheckComponentsAndClearList(list, type, results);
+    }
+
+    internal static object GetComponentInChildren(Component component, Type type, bool includeInactive = false)
+    {
+        if (type is ILRuntimeType)
+        {
+            return PrivateGetComponentInChildren(component, (type as ILRuntimeType).ILType, includeInactive);
+        }
+        return component.GetComponentInChildren(type, includeInactive);
+    }
+
+    internal static object GetComponentInChildren(Component component, IType type, bool includeInactive = false)
+    {
+        return GetComponentInChildren(component, type is ILType ? type.ReflectionType : type.TypeForCLR, includeInactive);
+    }
+
+    internal static object GetComponentsInChildren(Component component, Type type, bool includeInactive = false)
+    {
+        if (type is ILRuntimeType)
+        {
+            return PrivateGetComponentsInChildren(component, (type as ILRuntimeType).ILType, includeInactive, null);
+        }
+        return component.GetComponentsInChildren(type, includeInactive);
+    }
+
+    internal static object GetComponentsInChildren(Component component, IType type, bool includeInactive = false)
+    {
+        return GetComponentsInChildren(component, type is ILType ? type.ReflectionType : type.TypeForCLR, includeInactive);
+    }
+
+    private static IList GetComponentsInParentWithoutCheck(Component component, ILType type, bool includeInactive)
+    {
+        var adaptorType = GetMonoAdaptorType(type);
+        if (adaptorType == MonoAdaptorType)
+        {
+            component.GetComponentsInParent(includeInactive, _tempMonoList);
+            return _tempMonoList;
+        }
+        component.GetComponentsInParent(includeInactive, _tempMonoEnableList);
+        return _tempMonoEnableList;
+    }
+
+    private static ILTypeInstance PrivateGetComponentInParent(Component component, ILType type, bool includeInactive = false)
+    {
+        var list = GetComponentsInParentWithoutCheck(component, type, includeInactive);
+
+        return CheckComponentAndClearList(list, type);
+    }
+
+    private static ILTypeInstance[] PrivateGetComponentsInParent(Component component, ILType type, bool includeInactive, List<ILTypeInstance> results = null)
+    {
+        var list = GetComponentsInParentWithoutCheck(component, type, includeInactive);
+
+        return CheckComponentsAndClearList(list, type, results);
+    }
+
+    internal static object GetComponentInParent(Component component, Type type)
+    {
+        if (type is ILRuntimeType)
+        {
+            return PrivateGetComponentInParent(component, (type as ILRuntimeType).ILType);
+        }
+        return component.GetComponentInParent(type);
+    }
+
+    internal static object GetComponentInParent(Component component, IType type)
+    {
+        return GetComponentInParent(component, type is ILType ? type.ReflectionType : type.TypeForCLR);
+    }
+
+    internal static object GetComponentsInParent(Component component, Type type, bool includeInactive = false)
+    {
+        if (type is ILRuntimeType)
+        {
+            return PrivateGetComponentsInParent(component, (type as ILRuntimeType).ILType, includeInactive, null);
+        }
+        return component.GetComponentsInParent(type, includeInactive);
+    }
+
+    internal static object GetComponentsInParent(Component component, IType type, bool includeInactive = false)
+    {
+        return GetComponentsInParent(component, type is ILType ? type.ReflectionType : type.TypeForCLR, includeInactive);
+    }
+
+
+    #endregion
+
     #region 记录用
     private static Dictionary<string, MonoMethodInfo> _allMethodDict;
     public static Dictionary<string, MonoMethodInfo> AllMethodDict
@@ -195,23 +449,4 @@ public static class ILRMonoAdaptorHelper
     public const string OnTriggerExit = "OnTriggerExit";
     public const string OnTriggerStay = "OnTriggerStay";
     #endregion
-
-
-    public static Type GetMonoAdaptorType(ILType ilType)
-    {
-        foreach (var monoMethodInfo in EnableMethods)
-        {
-            if (ilType.GetMethod(monoMethodInfo.Name, monoMethodInfo.ParamCount) != null)
-            {
-                return MonoEnableAdaptorType;
-            }
-        }
-
-        return MonoAdaptorType;
-    }
-
-    public static bool IsMonoAdaptor(this MonoBehaviour mono)
-    {
-        return MonoAdaptorType.IsAssignableFrom(mono.GetType());
-    }
 }
